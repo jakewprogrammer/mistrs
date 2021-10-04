@@ -162,13 +162,9 @@ async def runApp():
   global purchasable
   global itemsProcessed
 
-  productCatalog = json.load( open( "file_name.json" ) )
+  productCatalog = json.load( open( "right_stuf_anime.json" ) )
 
-  i = 0
-  while os.path.exists("file_name.%s.json_backup" % i):
-    i += 1
-
-  with open("file_name.%s.json_backup" % i, "w") as outfile:
+  with open("right_stuf_anime.on_start_backup.json", "w") as outfile:
     json.dump( productCatalog, outfile)
 
   for publisher in PUBLISHERS:
@@ -201,22 +197,20 @@ async def runApp():
       now = datetime.datetime.now()
       changes = False
       for item in items:
-        time.sleep(0.08)
+        time.sleep(0.14)
         i = processItem(item, url, now)
         itemsProcessed += 1
         itemsProcessedForPublisher += 1
         printProgressBar(itemsProcessedForPublisher, prefix = 'Progress:', suffix = str(itemsProcessedForPublisher), length = 50)
         if i['url'] in productCatalog:
           if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
-            if productCatalog[i['url']]['damaged'] != i['damaged']:              
-              damagedMismatch +=1 
-              changes = True
-              await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
+            damagedMismatch +=1 
+            changes = True
+            await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
           elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
-            if productCatalog[i['url']]['imperfect'] != i['imperfect']:
-              imperfectMismatch +=1
-              changes = True
-              await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
+            imperfectMismatch +=1
+            changes = True
+            await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
           elif i['purchasable'] and productCatalog[i['url']]['preorder'] and not i['preorder']:
             mismatches += 1
             purchasableMismatch += 1
@@ -261,7 +255,9 @@ async def runApp():
 
       if changes:
         print('Dumping changes to disk...')
-        with open("file_name.json", 'w') as outfile:
+        with open("right_stuf_anime._change_dump_backup.json", 'w') as outfile:
+          json.dump(productCatalog,  outfile)
+        with open("right_stuf_anime.json", 'w') as outfile:
           json.dump(productCatalog,  outfile)
 
       if not nextPageFound: 
@@ -285,11 +281,11 @@ async def runApp():
     print('Items processed this publisher: ' + str(itemsProcessedForPublisher)) 
     print('Items processed this session: ' + str(itemsProcessed))  
     print('------------------------------------------------')
-    with open("file_name.json", 'w') as outfile:
+    with open("right_stuf_anime._publisher_done_dump_backup.json", 'w') as outfile:
       json.dump(productCatalog,  outfile)
-    with open("rightstufanime.json", 'w') as outfile:
+    with open("right_stuf_anime.json", 'w') as outfile:
       json.dump(productCatalog,  outfile)
-  await doublePrint(TEST_CHANNEL, "Loop complete @@@@@@@@@@")
+  await doublePrint(TEST_CHANNEL, "Loop complete.")
 ###################################
 
 
