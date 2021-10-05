@@ -5,6 +5,7 @@ import time
 import os
 import random
 import discord
+import asyncio
 from discord.ext.commands import Bot
 from discord.ext import commands
 from fake_useragent import UserAgent
@@ -18,6 +19,8 @@ imperfect = 0
 preorders = 0
 purchasable = 0
 itemsProcessed = 0
+
+threadBlocked = False
 
 PUBLISHERS = [
   'KODANSHA-COMICS',
@@ -206,43 +209,53 @@ async def runApp():
           if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
             damagedMismatch +=1 
             changes = True
+            i['in-stock-time'] = now.strftime(dateFormat)
             await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
           elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
             imperfectMismatch +=1
             changes = True
+            i['in-stock-time'] = now.strftime(dateFormat)
             await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
           elif i['purchasable'] and productCatalog[i['url']]['preorder'] and not i['preorder']:
             mismatches += 1
             purchasableMismatch += 1
             changes = True
+            i['in-stock-time'] = now.strftime(dateFormat)
             await doublePrint(IN_STOCK_CHANNEL, '**[Preorder Now In Stock]** ' + i['name'] + '\n' + i['url'])
           elif productCatalog[i['url']]['purchasable'] and not i['purchasable'] and not productCatalog[i['url']]['preorder']:
             mismatches += 1
             outOfStockMismatch += 1
             changes = True
+            i['out-of-stock-time'] = now.strftime(dateFormat)
             await doublePrint(OUT_OF_STOCK_CHANNEL, '**[OUT OF STOCK]** ' + i['name'] + '\n' + i['url'])
           elif not productCatalog[i['url']]['purchasable'] and i['purchasable']:
             mismatches += 1
             inStockMismatch += 1
             changes = True
+            i['in-stock-time'] = now.strftime(dateFormat)
             await doublePrint(IN_STOCK_CHANNEL, '**[RESTOCK]** ' + i['name'] + '\n' + i['url'])    
         else:
           if i['preorder']:
             changes = True
+            i['pre-order-time'] = now.strftime(dateFormat)
             await doublePrint(PREORDERS_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
           elif 'damaged' in i and i['damaged']:
             changes = True
+            i['in-stock-time'] = now.strftime(dateFormat)
             await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
           elif 'imperfect' in i and i['imperfect']:
             changes = True
+            i['in-stock-time'] = now.strftime(dateFormat)
             await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
           elif i['purchasable']:
             changes = True
-            await doublePrint(IN_STOCK_CHANNEL, '**[NEW]**' + i['name'] + '\n' + i['url'])
+            i['in-stock-time'] = now.strftime(dateFormat)
+            await doublePrint(IN_STOCK_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
           else: 
             changes = True
+            i['out-of-stock-time'] = now.strftime(dateFormat)
             await doublePrint(OUT_OF_STOCK_CHANNEL, 'New Item scanned in out of stock: ' + i['name'] + '\n' + i['url'])
-
+        
         productCatalog[i['url']] = i
 
       nextPageFound = False
@@ -295,6 +308,7 @@ discordSecret = config['TOKEN']
 
 @client.event
 async def on_ready():
+  global threadBlocked
   random.shuffle(PUBLISHERS)
   print(f'{client.user.name} has connected to Discord!')
   for guild in client.guilds:
@@ -307,8 +321,15 @@ async def on_ready():
   print('Publishers loaded:')
   for publisher in PUBLISHERS: 
     print(publisher)
-  await doublePrint(TEST_CHANNEL, 'App booting up...')
-  while True: 
-    await runApp()
+  if not threadBlocked:
+    threadBlocked = True
+    try:
+      await doublePrint(TEST_CHANNEL, 'App booting up...')
+      while True: 
+        await runApp()
+    finally: 
+      threadBlocked = False
+  else: 
+    doublePrint(TEST_CHANNEL, "Thread blocked!!!")
 
 client.run(discordSecret)
