@@ -154,22 +154,78 @@ def processItem(item, foundURL, now):
   i['last_checked'] = now.strftime(dateFormat)
   return i
 ###################################
-  
+
+async def compareItemAndPublishMessage(i, productCatalog, now, mDict):
+  changes = False
+  if i['url'] in productCatalog:
+    if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
+      mDict['damagedMismatch'] +=1 
+      changes = True
+      i['in-stock-time'] = now.strftime(dateFormat)
+      await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
+    elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
+      mDict['imperfectMismatch'] +=1
+      changes = True
+      i['in-stock-time'] = now.strftime(dateFormat)
+      await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
+    elif i['purchasable'] and productCatalog[i['url']]['preorder'] and not i['preorder']:
+      mDict['mismatches'] += 1
+      mDict['preorderMismatch'] += 1
+      changes = True
+      i['in-stock-time'] = now.strftime(dateFormat)
+      await triplePrint(IN_STOCK_CHANNEL, '**[Preorder Now In Stock]** ' + i['name'] + '\n' + i['url'])
+    elif productCatalog[i['url']]['purchasable'] and not i['purchasable'] and not productCatalog[i['url']]['preorder']:
+      mDict['mismatches'] += 1
+      mDict['outOfStockMismatch'] += 1
+      changes = True
+      i['out-of-stock-time'] = now.strftime(dateFormat)
+      await doublePrint(OUT_OF_STOCK_CHANNEL, '**[OUT OF STOCK]** ' + i['name'] + '\n' + i['url'])
+    elif not productCatalog[i['url']]['purchasable'] and i['purchasable']:
+      mDict['mismatches'] += 1
+      mDict['inStockMismatch'] += 1
+      changes = True
+      i['in-stock-time'] = now.strftime(dateFormat)
+      await triplePrint(IN_STOCK_CHANNEL, '**[RESTOCK]** ' + i['name'] + '\n' + i['url'])    
+  else:
+    if i['preorder']:
+      changes = True
+      i['pre-order-time'] = now.strftime(dateFormat)
+      await triplePrint(PREORDERS_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
+    elif 'damaged' in i and i['damaged']:
+      changes = True
+      i['in-stock-time'] = now.strftime(dateFormat)
+      await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
+    elif 'imperfect' in i and i['imperfect']:
+      changes = True
+      i['in-stock-time'] = now.strftime(dateFormat)
+      await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
+    elif i['purchasable']:
+      changes = True
+      i['in-stock-time'] = now.strftime(dateFormat)
+      await triplePrint(IN_STOCK_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
+    else: 
+      changes = True
+      i['out-of-stock-time'] = now.strftime(dateFormat)
+      await doublePrint(OUT_OF_STOCK_CHANNEL, 'New Item scanned in out of stock: ' + i['name'] + '\n' + i['url'])  
+  return changes
 
 ###################################
 async def runApp():
   global totalMismatches
-  mismatches = 0
-  preorderMismatch = 0
-  inStockMismatch = 0
-  outOfStockMismatch = 0
-  damagedMismatch = 0
-  imperfectMismatch = 0
   global damaged
   global imperfect
   global preorders
   global purchasable
   global itemsProcessed
+
+  mDict = {
+    'mismatches': 0,
+    'preorderMismatch': 0,
+    'inStockMismatch': 0,
+    'outOfStockMismatch': 0,
+    'damagedMismatch': 0,
+    'imperfectMismatch': 0
+  }
 
   productCatalog = json.load( open( "right_stuf_anime.json" ) )
 
@@ -205,65 +261,26 @@ async def runApp():
 
       now = datetime.datetime.now()
       changes = False
+      # Scan page of items loop
       for item in items:
         time.sleep(0.17)
         i = processItem(item, url, now)
         itemsProcessed += 1
         itemsProcessedForPublisher += 1
         printProgressBar(itemsProcessedForPublisher, prefix = 'Progress:', suffix = str(itemsProcessedForPublisher), length = 50)
-        if i['url'] in productCatalog:
-          if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
-            damagedMismatch +=1 
-            changes = True
-            i['in-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
-          elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
-            imperfectMismatch +=1
-            changes = True
-            i['in-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
-          elif i['purchasable'] and productCatalog[i['url']]['preorder'] and not i['preorder']:
-            mismatches += 1
-            preorderMismatch += 1
-            changes = True
-            i['in-stock-time'] = now.strftime(dateFormat)
-            await triplePrint(IN_STOCK_CHANNEL, '**[Preorder Now In Stock]** ' + i['name'] + '\n' + i['url'])
-          elif productCatalog[i['url']]['purchasable'] and not i['purchasable'] and not productCatalog[i['url']]['preorder']:
-            mismatches += 1
-            outOfStockMismatch += 1
-            changes = True
-            i['out-of-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(OUT_OF_STOCK_CHANNEL, '**[OUT OF STOCK]** ' + i['name'] + '\n' + i['url'])
-          elif not productCatalog[i['url']]['purchasable'] and i['purchasable']:
-            mismatches += 1
-            inStockMismatch += 1
-            changes = True
-            i['in-stock-time'] = now.strftime(dateFormat)
-            await triplePrint(IN_STOCK_CHANNEL, '**[RESTOCK]** ' + i['name'] + '\n' + i['url'])    
-        else:
-          if i['preorder']:
-            changes = True
-            i['pre-order-time'] = now.strftime(dateFormat)
-            await triplePrint(PREORDERS_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
-          elif 'damaged' in i and i['damaged']:
-            changes = True
-            i['in-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
-          elif 'imperfect' in i and i['imperfect']:
-            changes = True
-            i['in-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
-          elif i['purchasable']:
-            changes = True
-            i['in-stock-time'] = now.strftime(dateFormat)
-            await triplePrint(IN_STOCK_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
-          else: 
-            changes = True
-            i['out-of-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(OUT_OF_STOCK_CHANNEL, 'New Item scanned in out of stock: ' + i['name'] + '\n' + i['url'])
+        changes = await compareItemAndPublishMessage(i, productCatalog, now=now, mDict=mDict)
         
         productCatalog[i['url']] = i
 
+      # Dump changes to disk
+      if changes:
+        print('Dumping changes to disk...')
+        with open("right_stuf_anime._change_dump_backup.json", 'w') as outfile:
+          json.dump(productCatalog,  outfile)
+        with open("right_stuf_anime.json", 'w') as outfile:
+          json.dump(productCatalog,  outfile)
+
+      # Check for next query page
       nextPageFound = False
       if 'links' in request.json():
         for item in request.json()['links']:
@@ -272,28 +289,22 @@ async def runApp():
                 nextPageFound = True
                 page += 1
 
-      if changes:
-        print('Dumping changes to disk...')
-        with open("right_stuf_anime._change_dump_backup.json", 'w') as outfile:
-          json.dump(productCatalog,  outfile)
-        with open("right_stuf_anime.json", 'w') as outfile:
-          json.dump(productCatalog,  outfile)
-
       if not nextPageFound: 
         print() 
         print('Last page: ' + str(page))
         break
+
     publisherEndTime = datetime.datetime.now()
-    totalMismatches += mismatches
+    totalMismatches += mDict['mismatches']
     print('------------------------------------------------')
     print('Publisher: ' + publisher)
-    print('Mismatches This Scan: ' + str(mismatches))
+    print('Mismatches This Scan: ' + str(mDict['mismatches']))
     print('Total Session Mismatches: ' + str(totalMismatches))
-    print('In Stock mismatches: ' + str(inStockMismatch))
-    print('Out Of Stock mismatches: ' + str(outOfStockMismatch))
-    print('Preorder Mismatches: ' + str(preorderMismatch))
-    print('Damaged Mismatches: ' + str(damagedMismatch))
-    print('Imperfect Mismatches: ' + str(imperfectMismatch))
+    print('In Stock mismatches: ' + str(mDict['inStockMismatch']))
+    print('Out Of Stock mismatches: ' + str(mDict['outOfStockMismatch']))
+    print('Preorder Mismatches: ' + str(mDict['preorderMismatch']))
+    print('Damaged Mismatches: ' + str(mDict['damagedMismatch']))
+    print('Imperfect Mismatches: ' + str(mDict['imperfectMismatch']))
     print('End time: ' + publisherEndTime.strftime(dateFormat))
     print('Total time: ' + str(publisherEndTime-publisherStartTime))
     print('Total time per page: ' + str((publisherEndTime-publisherStartTime)/(page+1)))
