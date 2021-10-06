@@ -1,3 +1,5 @@
-
+*.json
 .env
 *.json_backup
+right_stuf_anime.on_start_backup.json
+__pycache__
