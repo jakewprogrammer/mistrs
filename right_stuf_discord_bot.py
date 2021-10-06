@@ -6,6 +6,9 @@ import os
 import random
 import discord
 import asyncio
+import traceback
+import twitter
+from twitter_bot import set_up_twitter_api
 from discord.ext.commands import Bot
 from discord.ext import commands
 from fake_useragent import UserAgent
@@ -35,6 +38,7 @@ PUBLISHERS = [
 ]
 
 config = dotenv_values(".env")
+twitter_api = set_up_twitter_api()
 
 MY_GUILD_NAME = 'Jake\'s Manga In-Stock Tracker (RightStufAnime)'
 
@@ -54,19 +58,21 @@ guildChannelList = {
   }   
 }
 
-async def doublePrint(channel, message):
-  tries = 0
-  while True:
-    try:
-      tries += 1
-      if tries >= 3: 
-        break
-      await guildChannelList[MY_GUILD_NAME][channel].send(message)
-      break
-    except asyncio.CancelledError: 
-      print('error posting to discord: [' + message + ']')
-      traceback.print_exc()
+async def triplePrint(channel, message):
+  try:
+    await doublePrint(channel, message)
+    twitter_api.PostUpdate(message)
+  except: 
+    print('Maybe error posting to twitter')
 
+async def doublePrint(channel, message):
+  try:
+    await guildChannelList[MY_GUILD_NAME][channel].send(message)
+  except: 
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    print('error posting to discord: [' + message + ']')
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    traceback.print_exc()
   print()
   print(message)
 
@@ -78,9 +84,9 @@ def makeRSURL(page = 0, publisher = 'VIZ-BOOKS'):
     publisher,
     '&custitem_rs_web_class=Manga&fieldset=search&language=en&limit=',
     str(increments),
-      '&n=2&offset=',
-      str(increments*page),
-      '&pricelevel=5&sort=relevance%3Aasc&use_pcv=F'
+    '&n=2&offset=',
+    str(increments*page),
+    '&pricelevel=5&sort=relevance%3Aasc&use_pcv=F'
   ]
 
   return ''.join(rsLinkParts)
@@ -200,7 +206,7 @@ async def runApp():
       now = datetime.datetime.now()
       changes = False
       for item in items:
-        time.sleep(0.14)
+        time.sleep(0.17)
         i = processItem(item, url, now)
         itemsProcessed += 1
         itemsProcessedForPublisher += 1
@@ -218,10 +224,10 @@ async def runApp():
             await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
           elif i['purchasable'] and productCatalog[i['url']]['preorder'] and not i['preorder']:
             mismatches += 1
-            purchasableMismatch += 1
+            preorderMismatch += 1
             changes = True
             i['in-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(IN_STOCK_CHANNEL, '**[Preorder Now In Stock]** ' + i['name'] + '\n' + i['url'])
+            await triplePrint(IN_STOCK_CHANNEL, '**[Preorder Now In Stock]** ' + i['name'] + '\n' + i['url'])
           elif productCatalog[i['url']]['purchasable'] and not i['purchasable'] and not productCatalog[i['url']]['preorder']:
             mismatches += 1
             outOfStockMismatch += 1
@@ -233,12 +239,12 @@ async def runApp():
             inStockMismatch += 1
             changes = True
             i['in-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(IN_STOCK_CHANNEL, '**[RESTOCK]** ' + i['name'] + '\n' + i['url'])    
+            await triplePrint(IN_STOCK_CHANNEL, '**[RESTOCK]** ' + i['name'] + '\n' + i['url'])    
         else:
           if i['preorder']:
             changes = True
             i['pre-order-time'] = now.strftime(dateFormat)
-            await doublePrint(PREORDERS_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
+            await triplePrint(PREORDERS_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
           elif 'damaged' in i and i['damaged']:
             changes = True
             i['in-stock-time'] = now.strftime(dateFormat)
@@ -250,7 +256,7 @@ async def runApp():
           elif i['purchasable']:
             changes = True
             i['in-stock-time'] = now.strftime(dateFormat)
-            await doublePrint(IN_STOCK_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
+            await triplePrint(IN_STOCK_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
           else: 
             changes = True
             i['out-of-stock-time'] = now.strftime(dateFormat)
