@@ -1,20 +1,23 @@
-from bs4 import BeautifulSoup
 import requests
 import time
+from fake_useragent import UserAgent
+from bs4 import BeautifulSoup
 
 
 publishersList = [
     'https://www.instocktrades.com/publishers/viz-media?pg='
 ]
 
+productCatalog = {}
 
 for publisherURL in publishersList:
     page = 0
-    
     while True:
         page += 1
         targetURL = publisherURL + str(page)
-        request = requests.get(targetURL)
+        ua = UserAgent()
+        headers = {'User-Agent': ua.random}
+        request = requests.get(targetURL, headers=headers)
         result  = BeautifulSoup(request.text,'lxml')
         serverStatus = request.status_code
 
@@ -29,7 +32,8 @@ for publisherURL in publishersList:
 
                 link = 'https://www.instocktrades.com/' + manga.find("a")['href']
                 print(link)
-                print(manga.find("a").string) 
+                mangaName = manga.find("a").string
+                print(mangaName)
 
                 mangaDesc = item.find("div", attrs={"class": "shortdesc desc"})
                 print(mangaDesc.string.strip())
@@ -37,6 +41,13 @@ for publisherURL in publishersList:
                 mangaPrice = item.find("div", attrs={"class": "price"})
                 
                 print(mangaPrice.string.strip())
+
+                productCatalog[link] = {
+                    'url': link,
+                    #'desc': mangaDesc,
+                    'price': mangaPrice,
+                    'name': mangaName
+                }
                 
 
             if itemsfound == 0:

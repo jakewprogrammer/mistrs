@@ -163,7 +163,8 @@ def processItem(item, foundURL, now):
       i['damaged'] = True
     else:
       i['damaged'] = False
-
+  if 'upccode' in item:
+    i['upccode'] = item['upccode'] 
   i['last_checked'] = now.strftime(dateFormat)
   return i
 ###################################
