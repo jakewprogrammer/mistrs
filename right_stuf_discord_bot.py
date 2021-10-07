@@ -91,6 +91,21 @@ def makeRSURL(page = 0, publisher = 'VIZ-BOOKS'):
 
   return ''.join(rsLinkParts)
 
+def makeRSAnimeURL(page = 0): 
+  increments = 96
+  rsLinkParts = [
+    'https://www.rightstufanime.com/api/items?c=546372&country=US&currency=USD',
+    '&custitem_rs_adult=false&custitem_rs_web_class=Blu~ray,DVD&fieldset=search&include=facets&language=en&',
+    'limit=',
+    str(increments),
+    '&n=2&offset=',
+    str(increments*page),
+    '&pricelevel=5&sort=relevance:asc&use_pcv=F'
+  ]
+
+  return ''.join(rsLinkParts)
+
+
 def printProgressBar (iteration, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
   """
   Call in a loop to create terminal progress bar
@@ -111,8 +126,6 @@ def printProgressBar (iteration, prefix = '', suffix = '', decimals = 1, length 
   bar = fill * filledLength + '-' * (length - filledLength)
   print(f'\r{prefix} |{bar}| {suffix}', end = printEnd)
   # Print New Line on Complete
-
-
 
 ###################################
 def processItem(item, foundURL, now):
