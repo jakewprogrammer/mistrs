@@ -34,7 +34,8 @@ PUBLISHERS = [
   'DARK-HORSE',
   'DARK-HORSE-MANGA',
   'SEVEN-SEAS',
-  'SQUARE-ENIX-MANGA'
+  'SQUARE-ENIX-MANGA',
+  'ANIME'
 ]
 
 config = dotenv_values(".env")
@@ -48,12 +49,50 @@ DAMAGED_AND_IMPERFECT_CHANNEL = 'damaged_and_imperfect'
 PREORDERS_CHANNEL = 'preorders'
 TEST_CHANNEL = 'testing_please_ignore'
 
+##### RS Manga publishers
+KODANSHA = 'KODANSHA-COMICS'
+YEN_PRESS = 'YEN-PRESS'
+VIZ = 'VIZ-BOOKS'
+UDON = 'UDON-ENTERTAINMENT'
+VERTICAL = 'VERTICAL'
+DARK_HORSE = 'DARK-HORSE'
+DARK_HORSE_MANGA = 'DARK-HORSE-MANGA'
+SEVEN_SEAS = 'SEVEN-SEAS'
+SQUARE_ENIX = 'SQUARE-ENIX-MANGA'
+ANIME = 'ANIME'
+
+DiscordChannelMap = { 
+  KODANSHA : 'kodansha_comics',
+  YEN_PRESS : 'yen_press',
+  VIZ : 'viz_books',
+  UDON : 'udon_entertainment',
+  VERTICAL : 'vertical',
+  DARK_HORSE : 'dark_horse',
+  DARK_HORSE_MANGA : 'dark_horse',
+  SEVEN_SEAS : 'seven_seas',
+  SQUARE_ENIX : 'square_enix_manga',
+  ANIME: 'anime'
+}
+
+publisherNameHumanReadable = {
+  KODANSHA : 'Kodansha Comics',
+  YEN_PRESS : 'Yen Press',
+  VIZ : 'Viz Books',
+  UDON : 'Udon Entertainment',
+  VERTICAL : 'Vertical',
+  DARK_HORSE : 'Dark Horse',
+  DARK_HORSE_MANGA : 'Dark Horse',
+  SEVEN_SEAS : 'Seven Seas',
+  SQUARE_ENIX : 'Square Enix Manga',
+  ANIME: 'Anime'
+}
+
 guildChannelList = { 
   MY_GUILD_NAME : { 
     IN_STOCK_CHANNEL : {}, 
-    OUT_OF_STOCK_CHANNEL: {}, 
+    OUT_OF_STOCK_CHANNEL : {}, 
     DAMAGED_AND_IMPERFECT_CHANNEL : {}, 
-    PREORDERS_CHANNEL: {},
+    PREORDERS_CHANNEL : {},
     TEST_CHANNEL : {}
   }   
 }
@@ -169,58 +208,58 @@ def processItem(item, foundURL, now):
   return i
 ###################################
 
-async def compareItemAndPublishMessage(i, productCatalog, now, mDict):
+async def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher):
   changes = False
   if i['url'] in productCatalog:
     if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
       mDict['damagedMismatch'] +=1 
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[Damaged]**\n' + i['name'] + '\n' + i['url'])
     elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
       mDict['imperfectMismatch'] +=1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[Imperfect]**\n' + i['name'] + '\n' + i['url'])
     elif i['purchasable'] and productCatalog[i['url']]['preorder'] and not i['preorder']:
       mDict['mismatches'] += 1
       mDict['preorderMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(IN_STOCK_CHANNEL, '**[Preorder Now In Stock]** ' + i['name'] + '\n' + i['url'])
+      await triplePrint(DiscordChannelMap[publisher], '**[Preorder Now In Stock]**\n' + i['name'] + '\n' + i['url'])
     elif productCatalog[i['url']]['purchasable'] and not i['purchasable'] and not productCatalog[i['url']]['preorder']:
       mDict['mismatches'] += 1
       mDict['outOfStockMismatch'] += 1
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(OUT_OF_STOCK_CHANNEL, '**[OUT OF STOCK]** ' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[OUT OF STOCK]**\n' + i['name'] + '\n' + i['url'])
     elif not productCatalog[i['url']]['purchasable'] and i['purchasable']:
       mDict['mismatches'] += 1
       mDict['inStockMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(IN_STOCK_CHANNEL, '**[RESTOCK]** ' + i['name'] + '\n' + i['url'])    
+      await triplePrint(DiscordChannelMap[publisher], '**[RESTOCK]**\n' + i['name'] + '\n' + i['url'])    
   else:
     if i['preorder']:
       changes = True
       i['pre-order-time'] = now.strftime(dateFormat)
-      await triplePrint(PREORDERS_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
+      await triplePrint(DiscordChannelMap[publisher], '**[NEW]**\n' + i['name'] + '\n' + i['url'])
     elif 'damaged' in i and i['damaged']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]** ' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[Damaged]**\n' + i['name'] + '\n' + i['url'])
     elif 'imperfect' in i and i['imperfect']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[Imperfect]**\n' + i['name'] + '\n' + i['url'])
     elif i['purchasable']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(IN_STOCK_CHANNEL, '**[NEW]** ' + i['name'] + '\n' + i['url'])
+      await triplePrint(DiscordChannelMap[publisher], '**[NEW]**\n' + i['name'] + '\n' + i['url'])
     else: 
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(OUT_OF_STOCK_CHANNEL, 'New Item scanned in out of stock: ' + i['name'] + '\n' + i['url'])  
+      await doublePrint(DiscordChannelMap[publisher], 'New Item scanned in out of stock:\n' + i['name'] + '\n' + i['url'])  
   return changes
 
 ###################################
@@ -253,7 +292,11 @@ async def runApp():
     print(publisher)
     
     while True:
-      url = makeRSURL(page, publisher)
+      url = ""
+      if publisher == ANIME:
+        url = makeRSAnimeURL(page)
+      else:
+        url = makeRSURL(page, publisher)
       #print(url)
       ua = UserAgent()
       headers = {'User-Agent': ua.random}
@@ -277,12 +320,12 @@ async def runApp():
       changes = False
       # Scan page of items loop
       for item in items:
-        time.sleep(0.17)
+        time.sleep(0.13)
         i = processItem(item, url, now)
         itemsProcessed += 1
         itemsProcessedForPublisher += 1
         printProgressBar(itemsProcessedForPublisher, prefix = 'Progress:', suffix = str(itemsProcessedForPublisher), length = 50)
-        changes = await compareItemAndPublishMessage(i, productCatalog, now=now, mDict=mDict)
+        changes = await compareItemAndPublishMessage(i, productCatalog, now=now, mDict=mDict, publisher=publisher)
         
         productCatalog[i['url']] = i
 
