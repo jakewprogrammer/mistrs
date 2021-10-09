@@ -34,8 +34,11 @@ PUBLISHERS = [
   'DARK-HORSE',
   'DARK-HORSE-MANGA',
   'SEVEN-SEAS',
-  'SQUARE-ENIX-MANGA',
-  'ANIME'
+  'SQUARE-ENIX-MANGA'
+]
+
+ANIMEPUBLISHERS = [
+    'ANIME'
 ]
 
 config = dotenv_values(".env")
@@ -49,14 +52,6 @@ DAMAGED_AND_IMPERFECT_CHANNEL = 'damaged_and_imperfect'
 PREORDERS_CHANNEL = 'preorders'
 TEST_CHANNEL = 'testing_please_ignore'
 ANIME_CHANNEL = 'anime'
-KODANSHA_CHANNEL = 'kodansha_comics'
-YEN_PRESS_CHANNEL = 'yen_press'
-VIZ_CHANNEL = 'viz_books'
-UDON_CHANNEL = 'udon_entertainment'
-VERTICAL_CHANNEL = 'vertical'
-DARK_HORSE_CHANNEL = 'dark_horse'
-SEVENS_SEAS_CHANNEL = 'seven_seas'
-SQUARE_ENIX_CHANNEL = 'square_enix_manga'
 
 ##### RS Manga publishers
 KODANSHA = 'KODANSHA-COMICS'
@@ -71,30 +66,32 @@ SQUARE_ENIX = 'SQUARE-ENIX-MANGA'
 ANIME = 'ANIME'
 
 DiscordChannelMap = { 
-  ANIME: ANIME_CHANNEL,
-  DARK_HORSE : DARK_HORSE_CHANNEL,
-  DARK_HORSE_MANGA : DARK_HORSE_CHANNEL,
-  KODANSHA : KODANSHA_CHANNEL,
-  SEVEN_SEAS : SEVENS_SEAS_CHANNEL,
-  SQUARE_ENIX : SQUARE_ENIX_CHANNEL,
-  UDON : UDON_CHANNEL,
-  VERTICAL : VERTICAL_CHANNEL,
-  VIZ : VIZ_CHANNEL,
-  YEN_PRESS : YEN_PRESS_CHANNEL,
+  KODANSHA : 'kodansha_comics',
+  YEN_PRESS : 'yen_press',
+  VIZ : 'viz_books',
+  UDON : 'udon_entertainment',
+  VERTICAL : 'vertical',
+  DARK_HORSE : 'dark_horse',
+  DARK_HORSE_MANGA : 'dark_horse',
+  SEVEN_SEAS : 'seven_seas',
+  SQUARE_ENIX : 'square_enix_manga',
+  ANIME: 'anime'
 }
 
 publisherNameHumanReadable = {
-  ANIME: 'Anime',
-  DARK_HORSE : 'Dark Horse',
-  DARK_HORSE_MANGA : 'Dark Horse',
   KODANSHA : 'Kodansha Comics',
-  SEVEN_SEAS : 'Seven Seas',
-  SQUARE_ENIX : 'Square Enix Manga',
+  YEN_PRESS : 'Yen Press',
+  VIZ : 'Viz Books',
   UDON : 'Udon Entertainment',
   VERTICAL : 'Vertical',
-  VIZ : 'Viz Books',
-  YEN_PRESS : 'Yen Press'
+  DARK_HORSE : 'Dark Horse',
+  DARK_HORSE_MANGA : 'Dark Horse',
+  SEVEN_SEAS : 'Seven Seas',
+  SQUARE_ENIX : 'Square Enix Manga',
+  ANIME: 'Anime'
 }
+
+
 
 guildChannelList = { 
   MY_GUILD_NAME : { 
@@ -103,14 +100,6 @@ guildChannelList = {
     DAMAGED_AND_IMPERFECT_CHANNEL : {}, 
     PREORDERS_CHANNEL : {},
     TEST_CHANNEL : {},
-    KODANSHA_CHANNEL : {},
-    VIZ_CHANNEL : {},
-    VERTICAL_CHANNEL : {},
-    DARK_HORSE_CHANNEL : {},
-    SEVENS_SEAS_CHANNEL : {},
-    SQUARE_ENIX_CHANNEL : {},
-    UDON_CHANNEL : {},
-    YEN_PRESS_CHANNEL: {},
     ANIME_CHANNEL : {},
   }   
 }
@@ -118,13 +107,14 @@ guildChannelList = {
 async def triplePrint(channel, message):
   try:
     await doublePrint(channel, message)
-    twitter_api.PostUpdate(message)
+    #twitter_api.PostUpdate(message)
   except: 
     print('Maybe error posting to twitter')
 
 async def doublePrint(channel, message):
   try:
-    await guildChannelList[MY_GUILD_NAME][channel].send(message)
+    #await guildChannelList[MY_GUILD_NAME][channel].send(message)
+    print()
   except: 
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     print('error posting to discord: [' + message + ']')
@@ -233,51 +223,51 @@ async def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher)
       mDict['damagedMismatch'] +=1 
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[Damaged]**\n' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[Damaged]** ' + i['name'] + '\n' + i['url'])
     elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
       mDict['imperfectMismatch'] +=1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[Imperfect]**\n' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
     elif i['purchasable'] and productCatalog[i['url']]['preorder'] and not i['preorder']:
       mDict['mismatches'] += 1
       mDict['preorderMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(DiscordChannelMap[publisher], '**[Preorder Now In Stock]**\n' + i['name'] + '\n' + i['url'])
+      await triplePrint(DiscordChannelMap[publisher], '**[Preorder Now In Stock]** ' + i['name'] + '\n' + i['url'])
     elif productCatalog[i['url']]['purchasable'] and not i['purchasable'] and not productCatalog[i['url']]['preorder']:
       mDict['mismatches'] += 1
       mDict['outOfStockMismatch'] += 1
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[OUT OF STOCK]**\n' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[OUT OF STOCK]** ' + i['name'] + '\n' + i['url'])
     elif not productCatalog[i['url']]['purchasable'] and i['purchasable']:
       mDict['mismatches'] += 1
       mDict['inStockMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(DiscordChannelMap[publisher], '**[RESTOCK]**\n' + i['name'] + '\n' + i['url'])    
+      await triplePrint(DiscordChannelMap[publisher], '**[RESTOCK]** ' + i['name'] + '\n' + i['url'])    
   else:
     if i['preorder']:
       changes = True
       i['pre-order-time'] = now.strftime(dateFormat)
-      await triplePrint(DiscordChannelMap[publisher], '**[NEW]**\n' + i['name'] + '\n' + i['url'])
+      await triplePrint(DiscordChannelMap[publisher], '**[NEW]** ' + i['name'] + '\n' + i['url'])
     elif 'damaged' in i and i['damaged']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[Damaged]**\n' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[Damaged]** ' + i['name'] + '\n' + i['url'])
     elif 'imperfect' in i and i['imperfect']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[Imperfect]**\n' + i['name'] + '\n' + i['url'])
+      await doublePrint(DiscordChannelMap[publisher], '**[Imperfect]** ' + i['name'] + '\n' + i['url'])
     elif i['purchasable']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(DiscordChannelMap[publisher], '**[NEW]**\n' + i['name'] + '\n' + i['url'])
+      await triplePrint(DiscordChannelMap[publisher], '**[NEW]** ' + i['name'] + '\n' + i['url'])
     else: 
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], 'New Item scanned in out of stock:\n' + i['name'] + '\n' + i['url'])  
+      await doublePrint(DiscordChannelMap[publisher], 'New Item scanned in out of stock: ' + i['name'] + '\n' + i['url'])  
   return changes
 
 ###################################
@@ -303,7 +293,7 @@ async def runApp():
   with open("right_stuf_anime.on_start_backup.json", "w") as outfile:
     json.dump( productCatalog, outfile)
 
-  for publisher in PUBLISHERS:
+  for publisher in ANIMEPUBLISHERS:
     publisherStartTime = datetime.datetime.now()
     page = 0
     itemsProcessedForPublisher = 0
@@ -312,14 +302,16 @@ async def runApp():
     while True:
       url = ""
       if publisher == ANIME:
+        print("ANIME URL")
         url = makeRSAnimeURL(page)
       else:
+        print("MANGA URL")
         url = makeRSURL(page, publisher)
       #print(url)
       ua = UserAgent()
       headers = {'User-Agent': ua.random}
 
-      time.sleep(0.15)
+      time.sleep(1)
       request = requests.get(url, headers=headers)
 
       if request.status_code == 400:
@@ -338,7 +330,7 @@ async def runApp():
       changes = False
       # Scan page of items loop
       for item in items:
-        time.sleep(0.13)
+        #time.sleep(0.17)
         i = processItem(item, url, now)
         itemsProcessed += 1
         itemsProcessedForPublisher += 1
@@ -402,7 +394,6 @@ discordSecret = config['TOKEN']
 async def on_ready():
   global threadBlocked
   random.shuffle(PUBLISHERS)
-  print('testsetstsad')
   print(f'{client.user.name} has connected to Discord!')
   for guild in client.guilds:
     if guild.name in guildChannelList:
@@ -411,7 +402,6 @@ async def on_ready():
         if channel.name in guildChannelList[guild.name]:
           print('[Channel]: ' + channel.name)
           guildChannelList[guild.name][channel.name] = client.get_channel(channel.id)
-        else: print('fix: [' + channel.name + ']')
   print('Publishers loaded:')
   for publisher in PUBLISHERS: 
     print(publisher)
