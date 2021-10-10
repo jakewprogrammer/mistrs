@@ -520,6 +520,6 @@ async def on_ready():
     finally: 
       threadBlocked = False
   else: 
-    doublePrint(TEST_CHANNEL, "Thread blocked!!!")
+    await doublePrint(TEST_CHANNEL, "Thread blocked!!!")
 
 client.run(discordSecret)

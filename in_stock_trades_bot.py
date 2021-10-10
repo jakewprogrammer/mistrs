@@ -127,7 +127,7 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict):
             if productCatalogOld[link]['publisher'] != publishersList[publisherURL]:
                 continue
             totalItems +=1
-            i['last_checked'] = now
+            i['last_checked'] = now.strftime(dateFormat)
             i['purchasable'] = False
 
             await compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems)
