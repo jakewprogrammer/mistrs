@@ -16,11 +16,6 @@ from dotenv import dotenv_values
 
 dateFormat = '%b %d %Y %I:%M%p'
 
-totalMismatches = 0
-damaged = 0
-imperfect = 0
-preorders = 0
-purchasable = 0
 itemsProcessed = 0
 
 threadBlocked = False
@@ -70,7 +65,7 @@ SEVEN_SEAS = 'SEVEN-SEAS'
 SQUARE_ENIX = 'SQUARE-ENIX-MANGA'
 ANIME = 'ANIME'
 
-DiscordChannelMap = { 
+PublisherNameToDiscordChannelNameMap = { 
   ANIME: ANIME_CHANNEL,
   DARK_HORSE : DARK_HORSE_CHANNEL,
   DARK_HORSE_MANGA : DARK_HORSE_CHANNEL,
@@ -115,16 +110,16 @@ guildChannelList = {
   }   
 }
 
-async def triplePrint(channel, message):
+async def triplePrint(discordChannel, message, discordMessageParts=""):
   try:
-    await doublePrint(channel, message)
+    await doublePrint(discordChannel, message, discordMessageParts)
     twitter_api.PostUpdate(message)
   except: 
     print('Maybe error posting to twitter')
 
-async def doublePrint(channel, message):
+async def doublePrint(discordChannel, message, discordMessageParts=""):
   try:
-    await guildChannelList[MY_GUILD_NAME][channel].send(message)
+    await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
   except: 
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     print('error posting to discord: [' + message + ']')
@@ -190,17 +185,12 @@ def processItem(item, foundURL, now):
   i['name'] = item['storedisplayname']
   i['price'] = item['onlinecustomerprice_formatted']
   i['purchasable'] = item['isinstock']
-  if i['purchasable'] == True:
-    global purchasable
-    purchasable += 1
   i['url'] = 'https://www.rightstufanime.com/' + item['urlcomponent']
   i['found_on_url'] = foundURL
   if 'custitem_rs_new_releases_preorders' in item:
     if item['custitem_rs_new_releases_preorders'] == None or 'None' in item['custitem_rs_new_releases_preorders'] or 'New Release' in item['custitem_rs_new_releases_preorders']:
       i['preorder'] = False
     elif 'Pre-order' in item['custitem_rs_new_releases_preorders']:
-      global preorders
-      preorders += 1
       i['preorder'] = True  
     else: 
       print(item['custitem_rs_new_releases_preorders'])
@@ -209,14 +199,10 @@ def processItem(item, foundURL, now):
     i['preorder'] = False
   if 'custitem_damaged_type' in item:
     if item['custitem_damaged_type'] == 'Imperfect':
-      global imperfect  
-      imperfect += 1
       i['imperfect'] = True
     else:
       i['imperfect'] = False
     if item['custitem_damaged_type'] == 'Damaged':
-      global damaged
-      damaged += 1
       i['damaged'] = True
     else:
       i['damaged'] = False
@@ -228,65 +214,62 @@ def processItem(item, foundURL, now):
 
 async def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher):
   changes = False
-  if i['url'] in productCatalog:
-    if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
+  url = i['url']
+  nameAndURL = + i['name'] + '\n' + url
+  if url in productCatalog:
+    if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[url]['purchasable']:
       mDict['damagedMismatch'] +=1 
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[Damaged]**\n' + i['name'] + '\n' + i['url'])
-    elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[i['url']]['purchasable']:
+      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Damaged]**\n' + nameAndURL, "")
+    elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[url]['purchasable']:
       mDict['imperfectMismatch'] +=1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[Imperfect]**\n' + i['name'] + '\n' + i['url'])
-    elif i['purchasable'] and productCatalog[i['url']]['preorder'] and not i['preorder']:
+      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Imperfect]**\n' + nameAndURL, "")
+    elif i['purchasable'] and productCatalog[url]['preorder'] and not i['preorder']:
       mDict['mismatches'] += 1
       mDict['preorderMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(DiscordChannelMap[publisher], '**[Preorder Now In Stock]**\n' + i['name'] + '\n' + i['url'])
-    elif productCatalog[i['url']]['purchasable'] and not i['purchasable'] and not productCatalog[i['url']]['preorder']:
+      await triplePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Preorder Now In Stock]**\n' + nameAndURL, "")
+    elif productCatalog[url]['purchasable'] and not i['purchasable'] and not productCatalog[url]['preorder']:
       mDict['mismatches'] += 1
       mDict['outOfStockMismatch'] += 1
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[OUT OF STOCK]**\n' + i['name'] + '\n' + i['url'])
-    elif not productCatalog[i['url']]['purchasable'] and i['purchasable']:
+      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[OUT OF STOCK]**\n' + nameAndURL, "")
+    elif not productCatalog[url]['purchasable'] and i['purchasable']:
       mDict['mismatches'] += 1
       mDict['inStockMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(DiscordChannelMap[publisher], '**[RESTOCK]**\n' + i['name'] + '\n' + i['url'])    
+      await triplePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[RESTOCK]**\n' + nameAndURL, "")    
   else:
     if i['preorder']:
       changes = True
       i['pre-order-time'] = now.strftime(dateFormat)
-      await triplePrint(DiscordChannelMap[publisher], '**[NEW]**\n' + i['name'] + '\n' + i['url'])
+      await triplePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[NEW]**\n' + nameAndURL, "")
     elif 'damaged' in i and i['damaged']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[Damaged]**\n' + i['name'] + '\n' + i['url'])
+      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Damaged]**\n' + nameAndURL, "")
     elif 'imperfect' in i and i['imperfect']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], '**[Imperfect]**\n' + i['name'] + '\n' + i['url'])
+      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Imperfect]**\n' + nameAndURL, "")
     elif i['purchasable']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(DiscordChannelMap[publisher], '**[NEW]**\n' + i['name'] + '\n' + i['url'])
+      await triplePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[NEW]**\n' + nameAndURL, "")
     else: 
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(DiscordChannelMap[publisher], 'New Item scanned in out of stock:\n' + i['name'] + '\n' + i['url'])  
+      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], 'New Item scanned in out of stock:\n' + nameAndURL, "")  
   return changes
 
 ###################################
 async def runApp():
-  global totalMismatches
-  global damaged
-  global imperfect
-  global preorders
-  global purchasable
   global itemsProcessed
 
   mDict = {
@@ -319,7 +302,7 @@ async def runApp():
       ua = UserAgent()
       headers = {'User-Agent': ua.random}
 
-      time.sleep(0.15)
+      await asyncio.sleep(0.15)
       request = requests.get(url, headers=headers)
 
       if request.status_code == 400:
@@ -338,7 +321,7 @@ async def runApp():
       changes = False
       # Scan page of items loop
       for item in items:
-        time.sleep(0.13)
+        await asyncio.sleep(0.13)
         i = processItem(item, url, now)
         itemsProcessed += 1
         itemsProcessedForPublisher += 1
@@ -370,11 +353,9 @@ async def runApp():
         break
 
     publisherEndTime = datetime.datetime.now()
-    totalMismatches += mDict['mismatches']
     print('------------------------------------------------')
     print('Publisher: ' + publisher)
-    print('Mismatches This Scan: ' + str(mDict['mismatches']))
-    print('Total Session Mismatches: ' + str(totalMismatches))
+    print('Mismatches This Session: ' + str(mDict['mismatches']))
     print('In Stock mismatches: ' + str(mDict['inStockMismatch']))
     print('Out Of Stock mismatches: ' + str(mDict['outOfStockMismatch']))
     print('Preorder Mismatches: ' + str(mDict['preorderMismatch']))
@@ -402,7 +383,6 @@ discordSecret = config['TOKEN']
 async def on_ready():
   global threadBlocked
   random.shuffle(PUBLISHERS)
-  print('testsetstsad')
   print(f'{client.user.name} has connected to Discord!')
   for guild in client.guilds:
     if guild.name in guildChannelList:
