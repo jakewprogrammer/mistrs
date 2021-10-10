@@ -46,7 +46,7 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict):
             ua = UserAgent()
             headers = {'User-Agent': ua.random}
             request = requests.get(targetURL, headers=headers)
-            time.sleep(0.1)
+            time.sleep(0.33)
             result  = BeautifulSoup(request.text,'lxml')
             serverStatus = request.status_code
 

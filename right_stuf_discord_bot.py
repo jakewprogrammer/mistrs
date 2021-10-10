@@ -186,14 +186,13 @@ categoryList = {
 async def triplePrint(discordChannel, message, discordMessageParts=""):
   try:
     await doublePrint(discordChannel, message, discordMessageParts)
-    #twitter_api.PostUpdate(message)
+    twitter_api.PostUpdate(message)
   except: 
     print('Maybe error posting to twitter')
 
 async def doublePrint(discordChannel, message, discordMessageParts=""):
   try:
-    #await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
-    print('skipped discord')
+    await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
   except: 
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     print('error posting to discord: [' + message + ']')
@@ -206,8 +205,7 @@ async def conditionalCombinedPrint(discordChannel, message, discordMessageParts=
   if category != MANGA:
     return 
   try:
-    #await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
-    print('')
+    await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
   except: 
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     print('error posting to discord: [' + message + ']')
@@ -499,6 +497,13 @@ async def on_ready():
     try:
       await doublePrint(TEST_CHANNEL, 'App booting up...')
       while True:
+        for category in categoryList.keys(): 
+          print('************************************************')
+          print('Starting category: ' + category)
+          print('Publishers: [' + ', '.join(categoryList[category]) + ']')
+          print('************************************************')
+          await runApp(category, categoryList[category])
+
         mDict = {
           'mismatches': 0,
           'preorderMismatch': 0,
@@ -512,13 +517,6 @@ async def on_ready():
         print('Starting InStockTradesScan')
         print('************************************************')
         await scanInStockTrades(compareItemAndPublishMessage, mDict=mDict)
-        for category in categoryList.keys(): 
-          print('************************************************')
-          print('Starting category: ' + category)
-          print('Publishers: [' + ', '.join(categoryList[category]) + ']')
-          print('************************************************')
-          await runApp(category, categoryList[category])
-
     finally: 
       threadBlocked = False
   else: 
