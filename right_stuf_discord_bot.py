@@ -8,6 +8,7 @@ import discord
 import asyncio
 import traceback
 import twitter
+from in_stock_trades_bot import scanInStockTrades
 from twitter_bot import set_up_twitter_api
 from discord.ext.commands import Bot
 from discord.ext import commands
@@ -20,18 +21,7 @@ itemsProcessed = 0
 
 threadBlocked = False
 
-PUBLISHERS = [
-  'KODANSHA-COMICS',
-  'YEN-PRESS',
-  'VIZ-BOOKS',
-  'UDON-ENTERTAINMENT',
-  'VERTICAL',
-  'DARK-HORSE',
-  'DARK-HORSE-MANGA',
-  'SEVEN-SEAS',
-  'SQUARE-ENIX-MANGA',
-  'ANIME'
-]
+
 
 config = dotenv_values(".env")
 twitter_api = set_up_twitter_api()
@@ -53,7 +43,13 @@ DARK_HORSE_CHANNEL = 'dark_horse'
 SEVENS_SEAS_CHANNEL = 'seven_seas'
 SQUARE_ENIX_CHANNEL = 'square_enix_manga'
 
-##### RS Manga publishers
+AIRSHIP_LN_CHANNEL = 'airship'
+VIZ_LN_CHANNEL = 'viz_books_ln'
+VERTICAL_LN_CHANNEL = 'vertical_ln'
+YEN_ON_LN_CHANNEL = 'yen_on'
+OTHER_LN_CHANNEL = 'other'
+
+##### RS Manga and Novel publishers
 KODANSHA = 'KODANSHA-COMICS'
 YEN_PRESS = 'YEN-PRESS'
 VIZ = 'VIZ-BOOKS'
@@ -63,9 +59,38 @@ DARK_HORSE = 'DARK-HORSE'
 DARK_HORSE_MANGA = 'DARK-HORSE-MANGA'
 SEVEN_SEAS = 'SEVEN-SEAS'
 SQUARE_ENIX = 'SQUARE-ENIX-MANGA'
-ANIME = 'ANIME'
+### novels only
+AIRSHIP = 'AIRSHIP'
+YEN_ON = 'YEN-ON'
 
-PublisherNameToDiscordChannelNameMap = { 
+ANIME_CATEGORY = 'Blu~ray,DVD'
+ANIME = 'ANIME'
+MANGA = 'Manga'
+NOVELS = 'Novels'
+
+PUBLISHERS = [
+  DARK_HORSE,
+  DARK_HORSE_MANGA,
+  KODANSHA,
+  SEVEN_SEAS,
+  SQUARE_ENIX,
+  UDON,
+  VERTICAL,
+  VIZ,
+  YEN_PRESS,
+]
+
+NOVEL_PUBLISHERS = [  
+  AIRSHIP,
+  DARK_HORSE_MANGA,
+  SEVEN_SEAS,
+  UDON,
+  VERTICAL,
+  VIZ, 
+  YEN_ON
+] 
+
+MangaPublisherNameToDiscordChannelNameMap = { 
   ANIME: ANIME_CHANNEL,
   DARK_HORSE : DARK_HORSE_CHANNEL,
   DARK_HORSE_MANGA : DARK_HORSE_CHANNEL,
@@ -77,6 +102,43 @@ PublisherNameToDiscordChannelNameMap = {
   VIZ : VIZ_CHANNEL,
   YEN_PRESS : YEN_PRESS_CHANNEL,
 }
+
+NovelsPublisherNameToDiscordChannelNameMap = { 
+  AIRSHIP: AIRSHIP_LN_CHANNEL,
+  #other categoried
+  DARK_HORSE_MANGA: OTHER_LN_CHANNEL,
+  #same as airship
+  SEVEN_SEAS: AIRSHIP_LN_CHANNEL,
+  #other categoried
+  UDON: OTHER_LN_CHANNEL,
+  VERTICAL: VERTICAL_LN_CHANNEL,
+  VIZ: VIZ_LN_CHANNEL,
+  YEN_ON: YEN_ON_LN_CHANNEL,
+  YEN_PRESS: YEN_ON_LN_CHANNEL,
+}
+
+AnimeDiscordChannelMap = {
+  ANIME: ANIME_CHANNEL,
+}
+
+CategoryToDiscordChannelMap = {
+  NOVELS: NovelsPublisherNameToDiscordChannelNameMap,
+  ANIME: AnimeDiscordChannelMap,
+  MANGA: MangaPublisherNameToDiscordChannelNameMap,
+}
+
+DiscordChannelMap = { 
+  DARK_HORSE : DARK_HORSE_CHANNEL,
+  DARK_HORSE_MANGA : DARK_HORSE_CHANNEL,
+  KODANSHA : KODANSHA_CHANNEL,
+  SEVEN_SEAS : SEVENS_SEAS_CHANNEL,
+  SQUARE_ENIX : SQUARE_ENIX_CHANNEL,
+  UDON : UDON_CHANNEL,
+  VERTICAL : VERTICAL_CHANNEL,
+  VIZ : VIZ_CHANNEL,
+  YEN_PRESS : YEN_PRESS_CHANNEL,
+}
+
 
 publisherNameHumanReadable = {
   ANIME: 'Anime',
@@ -107,19 +169,31 @@ guildChannelList = {
     UDON_CHANNEL : {},
     YEN_PRESS_CHANNEL: {},
     ANIME_CHANNEL : {},
+    AIRSHIP_LN_CHANNEL : {},
+    VIZ_LN_CHANNEL : {},
+    VERTICAL_LN_CHANNEL : {},
+    YEN_ON_LN_CHANNEL : {},
+    OTHER_LN_CHANNEL : {},
   }   
+}
+
+categoryList = {
+  ANIME : [ANIME],
+  MANGA :  PUBLISHERS,
+  NOVELS : NOVEL_PUBLISHERS,
 }
 
 async def triplePrint(discordChannel, message, discordMessageParts=""):
   try:
     await doublePrint(discordChannel, message, discordMessageParts)
-    twitter_api.PostUpdate(message)
+    #twitter_api.PostUpdate(message)
   except: 
     print('Maybe error posting to twitter')
 
 async def doublePrint(discordChannel, message, discordMessageParts=""):
   try:
-    await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
+    #await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
+    print('skipped discord')
   except: 
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     print('error posting to discord: [' + message + ']')
@@ -128,26 +202,36 @@ async def doublePrint(discordChannel, message, discordMessageParts=""):
   print()
   print(message)
 
-def makeRSURL(page = 0, publisher = 'VIZ-BOOKS'):
+async def conditionalCombinedPrint(discordChannel, message, discordMessageParts="", category=''):
+  if category != MANGA:
+    return 
+  try:
+    #await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
+    print('')
+  except: 
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    print('error posting to discord: [' + message + ']')
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    traceback.print_exc()
+
+def makeRSURL(page = 0, publisher='', category=''): 
   increments = 96
+  publisherURLPart = ''
+
+  if category:
+    publisherURLPart = '&custitem_rs_web_class=' + category
+    if publisher: 
+      publisherURLPart += '&custitem_rs_publisher=' + publisher
+  elif publisher == 'ANIME' or publisher == 'Anime' or publisher == 'Blu~ray,DVD':
+    publisherURLPart = '&custitem_rs_web_class=Blu~ray,DVD'
+  elif publisher: 
+    publisherURLPart = '&custitem_rs_publisher=' + publisher + '&custitem_rs_web_class=Manga'
+    
+
   rsLinkParts = [
     'https://www.rightstufanime.com/api/items?c=546372&country=US&currency=USD',
-    '&custitem_rs_publisher=',
-    publisher,
-    '&custitem_rs_web_class=Manga&fieldset=search&language=en&limit=',
-    str(increments),
-    '&n=2&offset=',
-    str(increments*page),
-    '&pricelevel=5&sort=relevance%3Aasc&use_pcv=F'
-  ]
-
-  return ''.join(rsLinkParts)
-
-def makeRSAnimeURL(page = 0): 
-  increments = 96
-  rsLinkParts = [
-    'https://www.rightstufanime.com/api/items?c=546372&country=US&currency=USD',
-    '&custitem_rs_adult=false&custitem_rs_web_class=Blu~ray,DVD&fieldset=search&include=facets&language=en&',
+    publisherURLPart,
+    '&custitem_rs_adult=false&fieldset=search&include=facets&language=en&',
     'limit=',
     str(increments),
     '&n=2&offset=',
@@ -180,13 +264,15 @@ def printProgressBar (iteration, prefix = '', suffix = '', decimals = 1, length 
   # Print New Line on Complete
 
 ###################################
-def processItem(item, foundURL, now):
+def RSprocessItem(item, foundURL, now, publisher, category):
   i = {}
   i['name'] = item['storedisplayname']
   i['price'] = item['onlinecustomerprice_formatted']
   i['purchasable'] = item['isinstock']
   i['url'] = 'https://www.rightstufanime.com/' + item['urlcomponent']
   i['found_on_url'] = foundURL
+  i['publisher'] = publisher
+  i['category'] = category
   if 'custitem_rs_new_releases_preorders' in item:
     if item['custitem_rs_new_releases_preorders'] == None or 'None' in item['custitem_rs_new_releases_preorders'] or 'New Release' in item['custitem_rs_new_releases_preorders']:
       i['preorder'] = False
@@ -212,64 +298,77 @@ def processItem(item, foundURL, now):
   return i
 ###################################
 
-async def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher):
+async def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, itemsProcessedForPublisher):
+  printProgressBar(itemsProcessedForPublisher, prefix = 'Progress:', suffix = str(itemsProcessedForPublisher), length = 50)
   changes = False
   url = i['url']
-  nameAndURL = + i['name'] + '\n' + url
+  nameAndURL = i['name'] + '\n' + url
   if url in productCatalog:
     if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[url]['purchasable']:
       mDict['damagedMismatch'] +=1 
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Damaged]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Damaged]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]**\n' + nameAndURL, "", category)
     elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[url]['purchasable']:
       mDict['imperfectMismatch'] +=1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Imperfect]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Imperfect]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]**\n' + nameAndURL, "", category)
     elif i['purchasable'] and productCatalog[url]['preorder'] and not i['preorder']:
       mDict['mismatches'] += 1
       mDict['preorderMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Preorder Now In Stock]**\n' + nameAndURL, "")
+      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[Preorder Now In Stock]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(PREORDERS_CHANNEL, '**[Preorder Now In Stock]**\n' + nameAndURL, "", category)
     elif productCatalog[url]['purchasable'] and not i['purchasable'] and not productCatalog[url]['preorder']:
       mDict['mismatches'] += 1
       mDict['outOfStockMismatch'] += 1
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[OUT OF STOCK]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[OUT OF STOCK]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(OUT_OF_STOCK_CHANNEL, '**[OUT OF STOCK]**\n' + nameAndURL, "", category)
     elif not productCatalog[url]['purchasable'] and i['purchasable']:
       mDict['mismatches'] += 1
       mDict['inStockMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[RESTOCK]**\n' + nameAndURL, "")    
+      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[RESTOCK]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(IN_STOCK_CHANNEL, '**[RESTOCK]**\n' + nameAndURL, "", category)    
   else:
     if i['preorder']:
       changes = True
       i['pre-order-time'] = now.strftime(dateFormat)
-      await triplePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[NEW]**\n' + nameAndURL, "")
+      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[NEW PREORDER]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(PREORDERS_CHANNEL, '**[NEW PREORDER]**\n' + nameAndURL, "", category)
     elif 'damaged' in i and i['damaged']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Damaged]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Damaged]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]**\n' + nameAndURL, "", category)
     elif 'imperfect' in i and i['imperfect']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[Imperfect]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Imperfect]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]**\n' + nameAndURL, "", category)
     elif i['purchasable']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(PublisherNameToDiscordChannelNameMap[publisher], '**[NEW]**\n' + nameAndURL, "")
+      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[NEW]**\n' + nameAndURL, "")
+      await conditionalCombinedPrint(IN_STOCK_CHANNEL, '**[NEW]**\n' + nameAndURL, "", category)
     else: 
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(PublisherNameToDiscordChannelNameMap[publisher], 'New Item scanned in out of stock:\n' + nameAndURL, "")  
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**New Item scanned in out of stock:**\n' + nameAndURL, "")  
+      await conditionalCombinedPrint(OUT_OF_STOCK_CHANNEL, '**New Item scanned in out of stock:**\n' + nameAndURL, "", category)
+
   return changes
 
 ###################################
-async def runApp():
+async def runApp(category, publishers):
+  print('Category: ' + category)
   global itemsProcessed
 
   mDict = {
@@ -284,25 +383,25 @@ async def runApp():
   productCatalog = json.load( open( "right_stuf_anime.json" ) )
 
   with open("right_stuf_anime.on_start_backup.json", "w") as outfile:
-    json.dump( productCatalog, outfile)
+    json.dump( productCatalog, outfile) 
 
-  for publisher in PUBLISHERS:
+  for publisher in publishers:
     publisherStartTime = datetime.datetime.now()
     page = 0
     itemsProcessedForPublisher = 0
-    print(publisher)
     
     while True:
       url = ""
       if publisher == ANIME:
-        url = makeRSAnimeURL(page)
+        url = makeRSURL(page, 'ANIME')
       else:
-        url = makeRSURL(page, publisher)
+        url = makeRSURL(page, publisher, category)
       #print(url)
       ua = UserAgent()
       headers = {'User-Agent': ua.random}
 
       await asyncio.sleep(0.15)
+      #await asyncio.sleep(0.5)
       request = requests.get(url, headers=headers)
 
       if request.status_code == 400:
@@ -322,11 +421,10 @@ async def runApp():
       # Scan page of items loop
       for item in items:
         await asyncio.sleep(0.13)
-        i = processItem(item, url, now)
+        i = RSprocessItem(item, url, now, publisher, category)
         itemsProcessed += 1
         itemsProcessedForPublisher += 1
-        printProgressBar(itemsProcessedForPublisher, prefix = 'Progress:', suffix = str(itemsProcessedForPublisher), length = 50)
-        changes = await compareItemAndPublishMessage(i, productCatalog, now=now, mDict=mDict, publisher=publisher)
+        changes = changes or await compareItemAndPublishMessage(i, productCatalog, now=now, mDict=mDict, publisher=publisher, category=category, itemsProcessedForPublisher=itemsProcessedForPublisher)
         
         productCatalog[i['url']] = i
 
@@ -354,6 +452,7 @@ async def runApp():
 
     publisherEndTime = datetime.datetime.now()
     print('------------------------------------------------')
+    print('Category: ' + publisher)
     print('Publisher: ' + publisher)
     print('Mismatches This Session: ' + str(mDict['mismatches']))
     print('In Stock mismatches: ' + str(mDict['inStockMismatch']))
@@ -371,7 +470,7 @@ async def runApp():
       json.dump(productCatalog,  outfile)
     with open("right_stuf_anime.json", 'w') as outfile:
       json.dump(productCatalog,  outfile)
-  await doublePrint(TEST_CHANNEL, "Loop complete.")
+  await doublePrint(TEST_CHANNEL, "Loop complete for category: " + category + ".")
 ###################################
 
 
@@ -399,8 +498,27 @@ async def on_ready():
     threadBlocked = True
     try:
       await doublePrint(TEST_CHANNEL, 'App booting up...')
-      while True: 
-        await runApp()
+      while True:
+        mDict = {
+          'mismatches': 0,
+          'preorderMismatch': 0,
+          'inStockMismatch': 0,
+          'outOfStockMismatch': 0,
+          'damagedMismatch': 0,
+          'imperfectMismatch': 0
+        }
+
+        print('************************************************')
+        print('Starting InStockTradesScan')
+        print('************************************************')
+        await scanInStockTrades(compareItemAndPublishMessage, mDict=mDict)
+        for category in categoryList.keys(): 
+          print('************************************************')
+          print('Starting category: ' + category)
+          print('Publishers: [' + ', '.join(categoryList[category]) + ']')
+          print('************************************************')
+          await runApp(category, categoryList[category])
+
     finally: 
       threadBlocked = False
   else: 
