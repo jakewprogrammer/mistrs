@@ -21,12 +21,10 @@ itemsProcessed = 0
 
 threadBlocked = False
 
-
-
 config = dotenv_values(".env")
 twitter_api = set_up_twitter_api()
 
-MY_GUILD_NAME = 'Jake\'s Manga In-Stock Tracker (RightStufAnime)'
+MY_GUILD_NAME = 'Jake\'s Manga In-Stock Tracker'
 
 IN_STOCK_CHANNEL = 'in_stock'
 OUT_OF_STOCK_CHANNEL = 'out_of_stock'
@@ -121,6 +119,10 @@ AnimeDiscordChannelMap = {
   ANIME: ANIME_CHANNEL,
 }
 
+IN_STOCK = 'in stock'
+OUT_OF_STOCK = 'out of stock'
+PREORDER = 'preorder'
+
 CategoryToDiscordChannelMap = {
   NOVELS: NovelsPublisherNameToDiscordChannelNameMap,
   ANIME: AnimeDiscordChannelMap,
@@ -138,7 +140,6 @@ DiscordChannelMap = {
   VIZ : VIZ_CHANNEL,
   YEN_PRESS : YEN_PRESS_CHANNEL,
 }
-
 
 publisherNameHumanReadable = {
   ANIME: 'Anime',
@@ -183,16 +184,24 @@ categoryList = {
   NOVELS : NOVEL_PUBLISHERS,
 }
 
-async def triplePrint(discordChannel, message, discordMessageParts=""):
+def generateMentions(discordChannelMentionMap, discordChannel, stockStatus): 
+  ROLE_ID = discordChannelMentionMap.get(discordChannel, {'a':'b'}).get(stockStatus, None)
+  if ROLE_ID:
+    return '<@&'+ROLE_ID+'>\n'
+  else:
+    return ''
+
+async def triplePrint(discordChannel, message, discordChannelMentionMap={}, stockStatus='none', twitterMessagePrefix = ''):
   try:
-    await doublePrint(discordChannel, message, discordMessageParts)
-    twitter_api.PostUpdate(message)
+    await doublePrint(discordChannel, message, discordChannelMentionMap, stockStatus)
+    twitter_api.PostUpdate(twitterMessagePrefix+message)
   except: 
     print('Maybe error posting to twitter')
 
-async def doublePrint(discordChannel, message, discordMessageParts=""):
+async def doublePrint(discordChannel, message, discordChannelMentionMap={}, stockStatus='none'):
   try:
-    await guildChannelList[MY_GUILD_NAME][discordChannel].send(discordMessageParts + message)
+    mention = generateMentions(discordChannelMentionMap=discordChannelMentionMap, discordChannel=discordChannel, stockStatus=stockStatus)
+    await guildChannelList[MY_GUILD_NAME][discordChannel].send(mention+message)
   except: 
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     print('error posting to discord: [' + message + ']')
@@ -296,7 +305,8 @@ def RSprocessItem(item, foundURL, now, publisher, category):
   return i
 ###################################
 
-async def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, itemsProcessedForPublisher):
+# we should refactor this. emit a status enum 
+async def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, itemsProcessedForPublisher, discordChannelMentionMap):
   printProgressBar(itemsProcessedForPublisher, prefix = 'Progress:', suffix = str(itemsProcessedForPublisher), length = 50)
   changes = False
   url = i['url']
@@ -306,66 +316,66 @@ async def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher,
       mDict['damagedMismatch'] +=1 
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Damaged]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Damaged]**\n' + nameAndURL)
       await conditionalCombinedPrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]**\n' + nameAndURL, "", category)
     elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[url]['purchasable']:
       mDict['imperfectMismatch'] +=1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Imperfect]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Imperfect]**\n' + nameAndURL)
       await conditionalCombinedPrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]**\n' + nameAndURL, "", category)
     elif i['purchasable'] and productCatalog[url]['preorder'] and not i['preorder']:
       mDict['mismatches'] += 1
       mDict['preorderMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[Preorder Now In Stock]**\n' + nameAndURL, "")
+      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[Preorder Now In Stock]**\n' + nameAndURL, discordChannelMentionMap, IN_STOCK)
       await conditionalCombinedPrint(PREORDERS_CHANNEL, '**[Preorder Now In Stock]**\n' + nameAndURL, "", category)
     elif productCatalog[url]['purchasable'] and not i['purchasable'] and not productCatalog[url]['preorder']:
       mDict['mismatches'] += 1
       mDict['outOfStockMismatch'] += 1
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[OUT OF STOCK]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], nameAndURL, discordChannelMentionMap, OUT_OF_STOCK)
       await conditionalCombinedPrint(OUT_OF_STOCK_CHANNEL, '**[OUT OF STOCK]**\n' + nameAndURL, "", category)
     elif not productCatalog[url]['purchasable'] and i['purchasable']:
       mDict['mismatches'] += 1
       mDict['inStockMismatch'] += 1
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[RESTOCK]**\n' + nameAndURL, "")
+      await triplePrint(CategoryToDiscordChannelMap[category][publisher], nameAndURL, discordChannelMentionMap, IN_STOCK, '**[RESTOCK]**\n')
       await conditionalCombinedPrint(IN_STOCK_CHANNEL, '**[RESTOCK]**\n' + nameAndURL, "", category)    
   else:
     if i['preorder']:
       changes = True
       i['pre-order-time'] = now.strftime(dateFormat)
-      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[NEW PREORDER]**\n' + nameAndURL, "")
+      await triplePrint(CategoryToDiscordChannelMap[category][publisher], nameAndURL, discordChannelMentionMap, PREORDER, '**[NEW PREORDER]**\n')
       await conditionalCombinedPrint(PREORDERS_CHANNEL, '**[NEW PREORDER]**\n' + nameAndURL, "", category)
     elif 'damaged' in i and i['damaged']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Damaged]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Damaged]**\n' + nameAndURL)
       await conditionalCombinedPrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Damaged]**\n' + nameAndURL, "", category)
     elif 'imperfect' in i and i['imperfect']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Imperfect]**\n' + nameAndURL, "")
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**[Imperfect]**\n' + nameAndURL)
       await conditionalCombinedPrint(DAMAGED_AND_IMPERFECT_CHANNEL, '**[Imperfect]**\n' + nameAndURL, "", category)
     elif i['purchasable']:
       changes = True
       i['in-stock-time'] = now.strftime(dateFormat)
-      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[NEW]**\n' + nameAndURL, "")
+      await triplePrint(CategoryToDiscordChannelMap[category][publisher], '**[NEW]**\n' + nameAndURL, discordChannelMentionMap, IN_STOCK)
       await conditionalCombinedPrint(IN_STOCK_CHANNEL, '**[NEW]**\n' + nameAndURL, "", category)
     else: 
       changes = True
       i['out-of-stock-time'] = now.strftime(dateFormat)
-      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**New Item scanned in out of stock:**\n' + nameAndURL, "")  
+      await doublePrint(CategoryToDiscordChannelMap[category][publisher], '**New Item scanned in out of stock:**\n' + nameAndURL, discordChannelMentionMap, IN_STOCK)  
       await conditionalCombinedPrint(OUT_OF_STOCK_CHANNEL, '**New Item scanned in out of stock:**\n' + nameAndURL, "", category)
 
   return changes
 
 ###################################
-async def runApp(category, publishers):
+async def runApp(category, publishers, DiscordChannelToMentionMap):
   print('Category: ' + category)
   global itemsProcessed
 
@@ -379,7 +389,7 @@ async def runApp(category, publishers):
   }
 
   productCatalog = json.load( open( "right_stuf_anime.json" ) )
-
+  
   with open("right_stuf_anime.on_start_backup.json", "w") as outfile:
     json.dump( productCatalog, outfile) 
 
@@ -422,7 +432,7 @@ async def runApp(category, publishers):
         i = RSprocessItem(item, url, now, publisher, category)
         itemsProcessed += 1
         itemsProcessedForPublisher += 1
-        changes = changes or await compareItemAndPublishMessage(i, productCatalog, now=now, mDict=mDict, publisher=publisher, category=category, itemsProcessedForPublisher=itemsProcessedForPublisher)
+        changes = changes or await compareItemAndPublishMessage(i, productCatalog, now=now, mDict=mDict, publisher=publisher, category=category, itemsProcessedForPublisher=itemsProcessedForPublisher, discordChannelMentionMap=DiscordChannelToMentionMap)
         
         productCatalog[i['url']] = i
 
@@ -494,6 +504,11 @@ async def on_ready():
     print(publisher)
   if not threadBlocked:
     threadBlocked = True
+    DiscordChannelToMentionMap = json.load( open( "DiscordChannelMentionMapFile.json" ) )
+    print(DiscordChannelToMentionMap)
+    print('test mention: ' + generateMentions(DiscordChannelToMentionMap, VIZ_LN_CHANNEL, IN_STOCK))
+    await doublePrint(TEST_CHANNEL, 'test ' + generateMentions(DiscordChannelToMentionMap, VIZ_LN_CHANNEL, IN_STOCK))
+
     try:
       await doublePrint(TEST_CHANNEL, 'App booting up...')
       while True:
@@ -502,7 +517,7 @@ async def on_ready():
           print('Starting category: ' + category)
           print('Publishers: [' + ', '.join(categoryList[category]) + ']')
           print('************************************************')
-          await runApp(category, categoryList[category])
+          await runApp(category, categoryList[category], DiscordChannelToMentionMap)
 
         mDict = {
           'mismatches': 0,
@@ -516,7 +531,7 @@ async def on_ready():
         print('************************************************')
         print('Starting InStockTradesScan')
         print('************************************************')
-        await scanInStockTrades(compareItemAndPublishMessage, mDict=mDict)
+        await scanInStockTrades(compareItemAndPublishMessage, mDict, DiscordChannelToMentionMap)
     finally: 
       threadBlocked = False
   else: 

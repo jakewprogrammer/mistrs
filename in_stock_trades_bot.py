@@ -28,7 +28,7 @@ publishersList = {
     
 dateFormat = '%b %d %Y %I:%M%p'
 
-async def scanInStockTrades(compareItemAndPublishMessage, mDict):
+async def scanInStockTrades(compareItemAndPublishMessage, mDict, DiscordChannelToMentionMap):
     productCatalog = json.load( open( "in_stock_trades.json" ) )
     with open("in_stock_trades.on_start_backup.json", "w") as outfile:
         json.dump( productCatalog, outfile) 
@@ -101,7 +101,7 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict):
                         'last_checked': now.strftime(dateFormat),
                     }
                     
-                    changes = await compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems)
+                    changes = await compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems, DiscordChannelToMentionMap)
                     productCatalog[link] = i
 
                     productCatalogOld.pop(link, None)
@@ -130,7 +130,7 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict):
             i['last_checked'] = now.strftime(dateFormat)
             i['purchasable'] = False
 
-            await compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems)
+            await compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems, DiscordChannelToMentionMap)
             productCatalog[link] = i
         if changes:
             with open("in_stock_trades.changes_backup.json", 'w') as outfile:
