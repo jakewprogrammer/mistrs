@@ -15,6 +15,10 @@ from discord.ext import commands
 from fake_useragent import UserAgent
 from dotenv import dotenv_values
 
+########################## UNSET THIS TO ACTIVATE REAL PRINTING #################################
+TestPrintingOnlyMode = True
+#################################################################################################
+
 dateFormat = '%b %d %Y %I:%M%p'
 
 itemsProcessed = 0
@@ -192,16 +196,20 @@ def generateMentions(discordChannelMentionMap, discordChannel, stockStatus):
     return ''
 
 async def triplePrint(discordChannel, message, discordChannelMentionMap={}, stockStatus='none', twitterMessagePrefix = ''):
-  try:
+  try: 
     await doublePrint(discordChannel, message, discordChannelMentionMap, stockStatus)
-    twitter_api.PostUpdate(twitterMessagePrefix+message)
+    if not TestPrintingOnlyMode:
+      twitter_api.PostUpdate(twitterMessagePrefix+message)
   except: 
     print('Maybe error posting to twitter')
 
 async def doublePrint(discordChannel, message, discordChannelMentionMap={}, stockStatus='none'):
   try:
     mention = generateMentions(discordChannelMentionMap=discordChannelMentionMap, discordChannel=discordChannel, stockStatus=stockStatus)
-    await guildChannelList[MY_GUILD_NAME][discordChannel].send(mention+message)
+    if TestPrintingOnlyMode:
+      await guildChannelList[MY_GUILD_NAME][TEST_CHANNEL].send(mention+message)
+    else:
+      await guildChannelList[MY_GUILD_NAME][discordChannel].send(mention+message)
   except: 
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     print('error posting to discord: [' + message + ']')
@@ -234,7 +242,6 @@ def makeRSURL(page = 0, publisher='', category=''):
   elif publisher: 
     publisherURLPart = '&custitem_rs_publisher=' + publisher + '&custitem_rs_web_class=Manga'
     
-
   rsLinkParts = [
     'https://www.rightstufanime.com/api/items?c=546372&country=US&currency=USD',
     publisherURLPart,
@@ -245,9 +252,7 @@ def makeRSURL(page = 0, publisher='', category=''):
     str(increments*page),
     '&pricelevel=5&sort=relevance:asc&use_pcv=F'
   ]
-
   return ''.join(rsLinkParts)
-
 
 def printProgressBar (iteration, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
   """

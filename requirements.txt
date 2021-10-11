@@ -1,0 +1,8 @@
+beautifulsoup4
+discord
+python-twitter
+python-dotenv
+ratelimit
+requests
+simplejson
+fake-useragent
