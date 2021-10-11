@@ -15,8 +15,16 @@ from discord.ext import commands
 from fake_useragent import UserAgent
 from dotenv import dotenv_values
 
+config = dotenv_values(".env")
+twitter_api = set_up_twitter_api()
 ########################## UNSET THIS TO ACTIVATE REAL PRINTING #################################
+runMode = config.get('RUN_MODE', "not_production")
 TestPrintingOnlyMode = True
+if runMode == "production":
+  print("Running in Production Mode")
+  TestPrintingOnlyMode = False
+else:
+  print("Running in dev mode")
 #################################################################################################
 
 dateFormat = '%b %d %Y %I:%M%p'
@@ -24,9 +32,6 @@ dateFormat = '%b %d %Y %I:%M%p'
 itemsProcessed = 0
 
 threadBlocked = False
-
-config = dotenv_values(".env")
-twitter_api = set_up_twitter_api()
 
 MY_GUILD_NAME = 'Jake\'s Manga In-Stock Tracker'
 

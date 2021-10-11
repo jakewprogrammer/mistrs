@@ -99,7 +99,7 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict, DiscordChannelT
             ua = UserAgent()
             headers = {'User-Agent': ua.random}
             request = requests.get(targetURL, headers=headers)
-            await asyncio.sleep(0.15)
+            await asyncio.sleep(0.5)
             #time.sleep(0.05)
             result  = BeautifulSoup(request.text,'lxml')
             serverStatus = request.status_code
