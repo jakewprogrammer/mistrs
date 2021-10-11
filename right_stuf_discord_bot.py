@@ -498,17 +498,14 @@ async def on_ready():
         if channel.name in guildChannelList[guild.name]:
           print('[Channel]: ' + channel.name)
           guildChannelList[guild.name][channel.name] = client.get_channel(channel.id)
-        else: print('fix: [' + channel.name + ']')
+        else: print('[**Unmapped Channel**]: ' + channel.name )
   print('Publishers loaded:')
   for publisher in PUBLISHERS: 
     print(publisher)
   if not threadBlocked:
     threadBlocked = True
     DiscordChannelToMentionMap = json.load( open( "DiscordChannelMentionMapFile.json" ) )
-    print(DiscordChannelToMentionMap)
-    print('test mention: ' + generateMentions(DiscordChannelToMentionMap, VIZ_LN_CHANNEL, IN_STOCK))
-    await doublePrint(TEST_CHANNEL, 'test ' + generateMentions(DiscordChannelToMentionMap, VIZ_LN_CHANNEL, IN_STOCK))
-
+    
     try:
       await doublePrint(TEST_CHANNEL, 'App booting up...')
       while True:

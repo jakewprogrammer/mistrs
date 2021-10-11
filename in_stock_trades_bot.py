@@ -3,6 +3,7 @@ import requests
 import json
 import time
 import datetime
+import asyncio
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 
@@ -28,9 +29,61 @@ publishersList = {
     
 dateFormat = '%b %d %Y %I:%M%p'
 
+#for testing/backfilling
+def compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, itemsProcessedForPublisher, discordChannelMentionMap):
+  changes = False
+  url = i['url']
+  nameAndURL = i['name'] + '\n' + url
+  if url in productCatalog:
+    if 'damaged' in i and i['damaged'] and i['purchasable'] and not productCatalog[url]['purchasable']:
+      mDict['damagedMismatch'] +=1 
+      changes = True
+      
+      print('**[Damaged]**\n' + nameAndURL)
+    elif 'imperfect' in i and i['imperfect'] and i['purchasable'] and not productCatalog[url]['purchasable']:
+      mDict['imperfectMismatch'] +=1
+      changes = True
+      print('**[Damaged]**\n' + nameAndURL)
+    elif i['purchasable'] and productCatalog[url]['preorder'] and not i['preorder']:
+      mDict['mismatches'] += 1
+      mDict['preorderMismatch'] += 1
+      changes = True
+      print('**[Preorder in stock]**\n' + nameAndURL)
+    elif productCatalog[url]['purchasable'] and not i['purchasable'] and not productCatalog[url]['preorder']:
+      mDict['mismatches'] += 1
+      mDict['outOfStockMismatch'] += 1
+      changes = True
+      print('**[Out of stock]**\n' + nameAndURL)
+    elif not productCatalog[url]['purchasable'] and i['purchasable']:
+      mDict['mismatches'] += 1
+      mDict['inStockMismatch'] += 1
+      changes = True
+      print('**[Restock]**\n' + nameAndURL)
+  else:
+    if i['preorder']:
+      changes = True
+
+      print('**[pre]**\n' + nameAndURL)
+    elif 'damaged' in i and i['damaged']:
+      changes = True
+
+      print('**[dammmm]**\n' + nameAndURL)
+    elif 'imperfect' in i and i['imperfect']:
+      changes = True
+
+    elif i['purchasable']:
+      changes = True
+
+      print('**[New scan]**\n' + nameAndURL)
+    else: 
+      changes = True
+
+      print('**[should never happen]**\n' + nameAndURL)
+  return changes
+
 async def scanInStockTrades(compareItemAndPublishMessage, mDict, DiscordChannelToMentionMap):
-    productCatalog = json.load( open( "in_stock_trades.json" ) )
-    with open("in_stock_trades.on_start_backup.json", "w") as outfile:
+    productCatalog = json.load( open( "in_stock_trades_fixed.json" ) )
+    with open("in_stock_trades_fixed.on_start_backup.json", "w") as outfile:
         json.dump( productCatalog, outfile) 
         
     productCatalogOld = dict(productCatalog)
@@ -46,7 +99,8 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict, DiscordChannelT
             ua = UserAgent()
             headers = {'User-Agent': ua.random}
             request = requests.get(targetURL, headers=headers)
-            time.sleep(0.33)
+            await asyncio.sleep(0.15)
+            #time.sleep(0.05)
             result  = BeautifulSoup(request.text,'lxml')
             serverStatus = request.status_code
 
@@ -61,7 +115,7 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict, DiscordChannelT
                     totalItems += 1
                     manga = item.find("div", attrs={"class": "title"})
 
-                    link = 'https://www.instocktrades.com/' + manga.find("a")['href']
+                    link = 'https://www.instocktrades.com' + manga.find("a")['href']
                     mangaName = manga.find("a").string
                     category = 'Manga'
                     if 'Light Novel' in mangaName:
@@ -102,11 +156,10 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict, DiscordChannelT
                     }
                     
                     changes = await compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems, DiscordChannelToMentionMap)
+                    #changes = compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems, DiscordChannelToMentionMap)
                     productCatalog[link] = i
 
                     productCatalogOld.pop(link, None)
-                    if link in productCatalogOld: 
-                        print('wtf???')
                     #print(productCatalog[link])
 
                 if changes:
@@ -130,18 +183,22 @@ async def scanInStockTrades(compareItemAndPublishMessage, mDict, DiscordChannelT
             i['last_checked'] = now.strftime(dateFormat)
             i['purchasable'] = False
 
-            await compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems, DiscordChannelToMentionMap)
+            changes = await compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems, DiscordChannelToMentionMap)
+            #changes = compareItemAndPublishMessage(i, productCatalog, now, mDict, publisher, category, totalItems, DiscordChannelToMentionMap)
             productCatalog[link] = i
         if changes:
-            with open("in_stock_trades.changes_backup.json", 'w') as outfile:
+            with open("in_stock_trades_fixed.changes_backup.json", 'w') as outfile:
                 json.dump(productCatalog,  outfile)
-            with open("in_stock_trades.json", 'w') as outfile:
+            with open("in_stock_trades_fixed.json", 'w') as outfile:
                 json.dump(productCatalog,  outfile)    
 
 
-    with open("in_stock_trades.final_dump.json", 'w') as outfile:
+    with open("in_stock_trades_fixed.final_dump.json", 'w') as outfile:
         json.dump(productCatalog,  outfile)
-    with open("in_stock_trades.json", 'w') as outfile:
+    with open("in_stock_trades_fixed.json", 'w') as outfile:
         json.dump(productCatalog,  outfile)
         
-#scanInStockTrades({}, {})
+#def noOpCompare(*args):
+#    return
+    
+#scanInStockTrades(compareItemAndPublishMessage, {}, {})
