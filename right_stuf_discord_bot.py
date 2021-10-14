@@ -671,23 +671,22 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
 ###################################
 
 
-client = discord.Client()
+bot = commands.Bot(command_prefix="!")
 
 discordSecret = config["TOKEN"]
 
-
-@client.event
+@bot.event
 async def on_ready():
     global threadBlocked
     random.shuffle(PUBLISHERS)
-    print(f"{client.user.name} has connected to Discord!")
-    for guild in client.guilds:
+    print(f"{bot.user.name} has connected to Discord!")
+    for guild in bot.guilds:
         if guild.name in guildChannelList:
             print("[Guild]: " + guild.name)
             for channel in guild.channels:
                 if channel.name in guildChannelList[guild.name]:
                     print("[Channel]: " + channel.name)
-                    guildChannelList[guild.name][channel.name] = client.get_channel(
+                    guildChannelList[guild.name][channel.name] = bot.get_channel(
                         channel.id
                     )
                 else:
@@ -741,4 +740,4 @@ async def on_ready():
         await doublePrint(TEST_CHANNEL, "Thread blocked!!!")
 
 
-client.run(discordSecret)
+bot.run(discordSecret)
