@@ -20,6 +20,7 @@ twitter_api = set_up_twitter_api()
 ########################## THIS CONTROLS WHETHER OR NOT THE BOT IS LIVE OR IN TEST MODE #################################
 runMode = config.get("RUN_MODE", "not_production")
 TestPrintingOnlyMode = True
+DEBUG_MENTION_MAP = False
 if runMode == "production":
     print("Running in Production Mode")
     TestPrintingOnlyMode = False
@@ -197,21 +198,15 @@ def generateMentions(discordChannelMentionMap, discordChannel, stockStatus):
         return ""
 
 
-async def triplePrint(
-    discordChannel,
-    message,
-    discordChannelMentionMap={},
-    stockStatus="none",
-    twitterMessagePrefix="",
-):
-    try:
-        await doublePrint(
-            discordChannel, message, discordChannelMentionMap, stockStatus
-        )
-        if not TestPrintingOnlyMode:
-            twitter_api.PostUpdate(twitterMessagePrefix + message)
-    except:
-        print("Maybe error posting to twitter")
+def replaceNameWithMention(discordChannelMentionMap, message):
+    for series in discordChannelMentionMap.get('series', {}).keys():
+        if series in message:
+            role_id = discordChannelMentionMap.get(
+                'series', {}).get(series, None)
+            if role_id:
+                replaceText = "<@&" + role_id + ">"
+                message = message.replace(series, replaceText)
+    return message
 
 
 async def doublePrint(
@@ -236,6 +231,23 @@ async def doublePrint(
         traceback.print_exc()
     print()
     print(message)
+
+
+async def triplePrint(
+    discordChannel,
+    message,
+    discordChannelMentionMap={},
+    stockStatus="none",
+    twitterMessagePrefix="",
+):
+    try:
+        await doublePrint(
+            discordChannel, message, discordChannelMentionMap, stockStatus
+        )
+        if not TestPrintingOnlyMode:
+            twitter_api.PostUpdate(twitterMessagePrefix + message)
+    except:
+        print("Maybe error posting to twitter")
 
 
 async def conditionalCombinedPrint(
@@ -370,7 +382,8 @@ async def compareItemAndPublishMessage(
     )
     changes = False
     url = i["url"]
-    nameAndURL = i["name"] + "\n" + url
+    nameAndURL = replaceNameWithMention(
+        discordChannelMentionMap, i["name"]) + "\n" + url
     if url in productCatalog:
         if (
             "damaged" in i
@@ -521,7 +534,6 @@ async def compareItemAndPublishMessage(
                 CategoryToDiscordChannelMap[category][publisher],
                 "**New Item scanned in out of stock:**\n" + nameAndURL,
                 discordChannelMentionMap,
-                IN_STOCK,
             )
             await conditionalCombinedPrint(
                 OUT_OF_STOCK_CHANNEL,
@@ -688,6 +700,12 @@ async def on_ready():
         DiscordChannelToMentionMap = json.load(
             open("DiscordChannelMentionMapFile.json")
         )
+
+        if DEBUG_MENTION_MAP:
+            for series in DiscordChannelToMentionMap['series'].keys():
+                await asyncio.sleep(0.3)
+                await doublePrint(TEST_CHANNEL, replaceNameWithMention(
+                    DiscordChannelToMentionMap, series), DiscordChannelToMentionMap)
 
         try:
             await doublePrint(TEST_CHANNEL, "App booting up...")
