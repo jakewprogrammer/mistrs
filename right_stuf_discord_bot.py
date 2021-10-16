@@ -26,7 +26,15 @@ if runMode == "production":
     TestPrintingOnlyMode = False
 else:
     print("Running in dev mode")
+
+# disabling the tweets for now because they're not up to snuff
+TweetsEnabled = False
 #########################################################################################################################
+
+DiscordChannelToMentionMap = {}
+with open("DiscordChannelMentionMapFile.json") as f:
+    DiscordChannelToMentionMap = json.load(f)
+
 
 dateFormat = "%b %d %Y %I:%M%p"
 
@@ -204,7 +212,7 @@ def replaceNameWithMention(discordChannelMentionMap, message):
             role_id = discordChannelMentionMap.get(
                 'series', {}).get(series, None)
             if role_id:
-                replaceText = "<@&" + role_id + ">"
+                replaceText = "<@&" + str(role_id) + ">"
                 message = message.replace(series, replaceText)
     return message
 
@@ -244,7 +252,7 @@ async def triplePrint(
         await doublePrint(
             discordChannel, message, discordChannelMentionMap, stockStatus
         )
-        if not TestPrintingOnlyMode:
+        if not TestPrintingOnlyMode and TweetsEnabled:
             twitter_api.PostUpdate(twitterMessagePrefix + message)
     except:
         print("Maybe error posting to twitter")
@@ -675,7 +683,47 @@ bot = commands.Bot(command_prefix="!")
 
 discordSecret = config["TOKEN"]
 
-@bot.event
+
+@bot.command(name="test")
+async def test(ctx):
+    print("message content")
+    print(ctx.message.content)
+    print("roles")
+    print(ctx.guild.roles)
+    print("channels")
+    print(ctx.guild.channels)
+
+
+@bot.command(name="create-mention-role")
+async def create_mention_role(ctx):
+    if ctx.message.author.id != 143168505485852672:
+        print('non jwp user attempted to use this')
+        print(ctx.message.author.id)
+        return
+    else:
+        print('verified user')
+
+    input = ctx.message.content.replace("!create-mention-role", "").strip()
+    if input in DiscordChannelToMentionMap["series"]:
+        print("input already in dict" + input)
+        return
+    print(input)
+    print(DiscordChannelToMentionMap)
+    newRole = await ctx.guild.create_role(name=input, colour=discord.Colour.random())
+    print(newRole.id)
+    print(newRole.name)
+    print(newRole)
+
+    with open("DiscordChannelMentionMapFile.on_start_backup.json", "w") as outfile:
+        json.dump(DiscordChannelToMentionMap, outfile)
+    DiscordChannelToMentionMap["series"][newRole.name] = str(newRole.id)
+    with open("DiscordChannelMentionMapFile.json", "w") as outfile:
+        json.dump(DiscordChannelToMentionMap, outfile, indent=4)
+
+    print("role created")
+
+
+@ bot.event
 async def on_ready():
     global threadBlocked
     random.shuffle(PUBLISHERS)
@@ -696,9 +744,6 @@ async def on_ready():
         print(publisher)
     if not threadBlocked:
         threadBlocked = True
-        DiscordChannelToMentionMap = json.load(
-            open("DiscordChannelMentionMapFile.json")
-        )
 
         if DEBUG_MENTION_MAP:
             for series in DiscordChannelToMentionMap['series'].keys():
