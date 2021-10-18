@@ -53,6 +53,7 @@ def ScrapeProductPage(productURL, product):
     
 
 def ScrapeBarnesAndNoble(publisher):
+    global last_one
     # prep request params
     page = 0  # page starts on 1
     headers = {"User-Agent": UserAgent().random}
