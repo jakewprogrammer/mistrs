@@ -124,6 +124,7 @@ def ScrapeBarnesAndNoble(publisher):
         print(total)
 
 def Run():
+    print("firing up the test run")
     for publisher in URL_LIST:
         ScrapeBarnesAndNoble(publisher)
 
