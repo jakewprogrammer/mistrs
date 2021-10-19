@@ -558,6 +558,8 @@ async def compareItemAndPublishMessage(
 
 async def runApp(category, publishers, DiscordChannelToMentionMap):
     print("Category: " + category)
+    ua = UserAgent()
+    headers = {"User-Agent": ua.random}
     global itemsProcessed
 
     mDict = {
@@ -586,8 +588,6 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
             else:
                 url = makeRSURL(page, publisher, category)
             # print(url)
-            ua = UserAgent()
-            headers = {"User-Agent": ua.random}
 
             await asyncio.sleep(0.15)
             # await asyncio.sleep(0.5)
