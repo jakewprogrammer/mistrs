@@ -2,6 +2,7 @@ from os import stat
 import requests
 import json
 import time
+import traceback
 import random
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
@@ -44,7 +45,7 @@ def ScrapeProductPage(productURL, product, sess, headers, state):
     time.sleep(0.1)
 
     # first request to get total page count
-    request = sess.get(productURL, headers=headers)
+    request = sess.get(productURL, headers=headers, timeout=6)
 
     if request.status_code != 200:
         print(request.text)
@@ -84,7 +85,7 @@ def ScrapeBarnesAndNoble(state, publisher, sess, headers):
         state[page] += 1
         # first request to get total page count
         currentURL = publisher+str(state[page])
-        request = sess.get(currentURL, headers=headers)
+        request = sess.get(currentURL, headers=headers, timeout=6)
         print(currentURL)
         if request.status_code != 200:
             print(request.text)
@@ -190,6 +191,7 @@ def Run():
                         ScrapeBarnesAndNoble(state, publisher, sess, headers)
         except Exception as e:
             print(e)
+            print(traceback.format_exc())
 
 
 if __name__ == "__main__":
