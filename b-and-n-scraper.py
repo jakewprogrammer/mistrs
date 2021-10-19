@@ -140,7 +140,7 @@ def ScrapeBarnesAndNoble(state, publisher, sess, headers):
                 print("Out of stock")
             productCatalog[url] = pJson
 
-        if page % 20 == 0:
+        if state[page] % 20 == 0:
             with open("b-and-n-2.json", "w") as outfile:
                 json.dump(productCatalog, outfile,
                           indent=4, sort_keys=True)
