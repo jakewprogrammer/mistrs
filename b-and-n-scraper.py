@@ -45,7 +45,7 @@ def ScrapeProductPage(productURL, product, sess, headers, state):
     time.sleep(0.1)
 
     # first request to get total page count
-    request = sess.get(productURL, headers=headers, timeout=6)
+    request = sess.get(productURL, headers=headers, timeout=10)
 
     if request.status_code != 200:
         print(request.text)
@@ -85,7 +85,7 @@ def ScrapeBarnesAndNoble(state, publisher, sess, headers):
         state[page] += 1
         # first request to get total page count
         currentURL = publisher+str(state[page])
-        request = sess.get(currentURL, headers=headers, timeout=6)
+        request = sess.get(currentURL, headers=headers, timeout=10)
         print(currentURL)
         if request.status_code != 200:
             print(request.text)
@@ -94,7 +94,7 @@ def ScrapeBarnesAndNoble(state, publisher, sess, headers):
             state[page] -= 1
             raise Exception(str(request.status_code))
 
-        soup = BeautifulSoup(request.content, 'html.parser')
+        soup = BeautifulSoup(request.text, 'lxml')
 
         products = soup.find_all(
             class_='product-shelf-info product-info-view text--left pl-qa-s')
@@ -122,17 +122,17 @@ def ScrapeBarnesAndNoble(state, publisher, sess, headers):
             format = product.find(class_='format').string.strip()
             bopis = product.find(
                 class_='ml-xxs bopis-badge-message mt-0 mb-0')
-            if format.strip() != 'Paperback':
-                print(
-                    format + ' should be Nook detected, out of stock assumed')
+            if format != 'Paperback':
+                pJson['format'] = format
                 pJson['on-nook'] = True
             elif bopis.string == 'Available Online':
-                print("In stock detected")
                 actuallyInStock = ScrapeProductPage(
                     url, pJson, sess, headers, state)
                 print("Was actually in stock? : " +
                       str(actuallyInStock))
                 pJson['in-stock'] = actuallyInStock
+                if not actuallyInStock: 
+                    pJson['bad-listing'] = True
             elif bopis.string == 'Pre-order Now':
                 print("Preorder")
                 pJson['preorder'] = True
@@ -169,16 +169,16 @@ def Run():
 
     state = {}
     state['page'] = 0  # page starts on 1
+    headers = {"User-Agent": UserAgent().random}
     while True:
         try:
             with TorRequests() as tor_requests:
                 with tor_requests.get_session() as sess:
-                    headers = {"User-Agent": UserAgent().random}
-                    print(sess.get("http://httpbin.org/ip", timeout=3).json())
+                    #print(sess.get("http://httpbin.org/ip", timeout=3).json())
                     request = sess.get(
-                        'https://www.barnesandnoble.com/b/viz-media/_/N-1p70?Nrpp=40&Ns=P_Display_Name%7C0&page=1', headers=headers, timeout=3)
+                        'https://www.barnesandnoble.com/b/viz-media/_/N-1p70?Nrpp=40&Ns=P_Display_Name%7C0&page=1', headers=headers, timeout=6)
 
-                    time.sleep(0.5)
+                    time.sleep(0.25)
 
                     print("Initial request: ")
                     print(request.text)
