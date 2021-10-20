@@ -571,7 +571,9 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
         "imperfectMismatch": 0,
     }
 
-    productCatalog = json.load(open("right_stuf_anime.json"))
+    productCatalog = {}
+    with open("right_stuf_anime.json") as f:
+        productCatalog = json.load(f)
 
     with open("right_stuf_anime.on_start_backup.json", "w") as outfile:
         json.dump(productCatalog, outfile)
