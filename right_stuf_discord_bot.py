@@ -616,7 +616,7 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
                 i = RSprocessItem(item, url, now, publisher, category)
                 itemsProcessed += 1
                 itemsProcessedForPublisher += 1
-                changes = await compareItemAndPublishMessage(
+                innerChanges = await compareItemAndPublishMessage(
                     i,
                     productCatalog,
                     now=now,
@@ -626,6 +626,8 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
                     itemsProcessedForPublisher=itemsProcessedForPublisher,
                     discordChannelMentionMap=DiscordChannelToMentionMap,
                 )
+
+                changes = changes or innerChanges
 
                 productCatalog[i["url"]] = i
 
