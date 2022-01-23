@@ -65,6 +65,8 @@ VERTICAL_LN_CHANNEL = "vertical_ln"
 YEN_ON_LN_CHANNEL = "yen_on"
 OTHER_LN_CHANNEL = "other"
 
+FIGURINES_CHANNEL = "figures_and_collectables"
+
 # RS Manga and Novel publishers
 KODANSHA = "KODANSHA-COMICS"
 YEN_PRESS = "YEN-PRESS"
@@ -83,6 +85,7 @@ ANIME_CATEGORY = "Blu~ray,DVD"
 ANIME = "ANIME"
 MANGA = "Manga"
 NOVELS = "Novels"
+FIGURINES = "Figurines"
 
 PUBLISHERS = [
     DARK_HORSE,
@@ -130,6 +133,10 @@ AnimeDiscordChannelMap = {
     ANIME: ANIME_CHANNEL,
 }
 
+FigurinesDiscordChannelMap = {
+    FIGURINES: FIGURINES_CHANNEL,
+}
+
 IN_STOCK = "in stock"
 OUT_OF_STOCK = "out of stock"
 PREORDER = "preorder"
@@ -138,6 +145,7 @@ CategoryToDiscordChannelMap = {
     NOVELS: NovelsPublisherNameToDiscordChannelNameMap,
     ANIME: AnimeDiscordChannelMap,
     MANGA: MangaPublisherNameToDiscordChannelNameMap,
+    FIGURINES: FigurinesDiscordChannelMap,
 }
 
 DiscordChannelMap = {
@@ -163,6 +171,7 @@ publisherNameHumanReadable = {
     VERTICAL: "Vertical",
     VIZ: "Viz Books",
     YEN_PRESS: "Yen Press",
+    FIGURINES: "Figurines and Collectables"
 }
 
 guildChannelList = {
@@ -186,10 +195,12 @@ guildChannelList = {
         VERTICAL_LN_CHANNEL: {},
         YEN_ON_LN_CHANNEL: {},
         OTHER_LN_CHANNEL: {},
+        FIGURINES_CHANNEL: {},
     }
 }
 
 categoryList = {
+    FIGURINES: [FIGURINES],
     ANIME: [ANIME],
     MANGA: PUBLISHERS,
     NOVELS: NOVEL_PUBLISHERS,
@@ -228,10 +239,12 @@ async def doublePrint(
         )
         if TestPrintingOnlyMode:
             await guildChannelList[MY_GUILD_NAME][TEST_CHANNEL].send(mention + message)
+            #print()
         else:
             await guildChannelList[MY_GUILD_NAME][discordChannel].send(
-                mention + message
+               mention + message
             )
+            #print()
     except:
         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
         print("error posting to discord: [" + message + "]")
@@ -284,6 +297,8 @@ def makeRSURL(page=0, publisher="", category=""):
             publisherURLPart += "&custitem_rs_publisher=" + publisher
     elif publisher == "ANIME" or publisher == "Anime" or publisher == "Blu~ray,DVD":
         publisherURLPart = "&custitem_rs_web_class=Blu~ray,DVD"
+    elif publisher == "FIGURINES" or publisher == "Figurines":
+        publisherURLPart = "&custitem_rs_web_class=Figures%2CMemorabilia%2CModel-Kits"
     elif publisher:
         publisherURLPart = (
             "&custitem_rs_publisher=" + publisher + "&custitem_rs_web_class=Manga"
@@ -334,6 +349,8 @@ def RSprocessItem(item, foundURL, now, publisher, category):
     i["name"] = item["storedisplayname"]
     i["price"] = item["onlinecustomerprice_formatted"]
     i["purchasable"] = item["isinstock"]
+    # need to look into handling "ispurchasable" separately as they use this to toggle purchasability on preorders as a stock signal
+
     i["url"] = "https://www.rightstufanime.com/" + item["urlcomponent"]
     i["found_on_url"] = foundURL
     i["publisher"] = publisher
@@ -443,7 +460,7 @@ async def compareItemAndPublishMessage(
                 IN_STOCK,
             )
             await conditionalCombinedPrint(
-                PREORDERS_CHANNEL,
+                IN_STOCK_CHANNEL,
                 "**[Preorder Now In Stock]**\n" + nameAndURL,
                 "",
                 category,
@@ -587,6 +604,9 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
             url = ""
             if publisher == ANIME:
                 url = makeRSURL(page, "ANIME")
+            elif publisher == FIGURINES:
+                url = makeRSURL(page, "FIGURINES")
+                print("##### URL " + str(url))
             else:
                 url = makeRSURL(page, publisher, category)
             # print(url)
@@ -616,6 +636,7 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
                 i = RSprocessItem(item, url, now, publisher, category)
                 itemsProcessed += 1
                 itemsProcessedForPublisher += 1
+                
                 innerChanges = await compareItemAndPublishMessage(
                     i,
                     productCatalog,
