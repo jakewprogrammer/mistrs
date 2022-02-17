@@ -747,6 +747,12 @@ async def create_mention_role(ctx):
 
     print("role created")
 
+@bot.command(name="print-record")
+async def print_record(ctx):
+    print("testing")
+    ctx.message.channel.send("test")
+    return
+
 
 @ bot.event
 async def on_ready():
