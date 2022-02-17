@@ -417,6 +417,13 @@ async def compareItemAndPublishMessage(
     nameAndURL = replaceNameWithMention(
         discordChannelMentionMap, i["name"]) + "\n" + url
     if url in productCatalogMap:
+        if "in-stock-time" in productCatalogMap[url]:
+            i["in-stock-time"] = productCatalogMap[url].get("in-stock-time")
+        if "out-of-stock-time" in productCatalogMap[url]:
+            i["out-of-stock-time"] = productCatalogMap[url].get("out-of-stock-time")
+        if "pre-order-time" in productCatalogMap[url]:
+            i["pre-order-time"] = productCatalogMap[url].get("pre-order-time")
+
         if (
             "damaged" in i
             and i["damaged"]
