@@ -657,8 +657,6 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
 
                 changes = changes or innerChanges
 
-                # When I do this, I'm mashing over the data I'm setting in compareItemAndPublishMessage
-                # IE last seen in stock time, etc. Need to fix that there.
                 productCatalog[i["url"]] = i
 
             # Dump changes to disk
