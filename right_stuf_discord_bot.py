@@ -36,6 +36,13 @@ with open("DiscordChannelMentionMapFile.json") as f:
     DiscordChannelToMentionMap = json.load(f)
 
 
+productCatalog = {}
+with open("right_stuf_anime.json") as f:
+    productCatalog = json.load(f)
+
+with open("right_stuf_anime.on_start_backup.json", "w") as outfile:
+    json.dump(productCatalog, outfile)
+
 dateFormat = "%b %d %Y %I:%M%p"
 
 itemsProcessed = 0
@@ -391,7 +398,7 @@ def RSprocessItem(item, foundURL, now, publisher, category):
 
 async def compareItemAndPublishMessage(
     i,
-    productCatalog,
+    productCatalogMap,
     now,
     mDict,
     publisher,
@@ -409,12 +416,19 @@ async def compareItemAndPublishMessage(
     url = i["url"]
     nameAndURL = replaceNameWithMention(
         discordChannelMentionMap, i["name"]) + "\n" + url
-    if url in productCatalog:
+    if url in productCatalogMap:
+        if "in-stock-time" in productCatalogMap[url]:
+            i["in-stock-time"] = productCatalogMap[url].get("in-stock-time")
+        if "out-of-stock-time" in productCatalogMap[url]:
+            i["out-of-stock-time"] = productCatalogMap[url].get("out-of-stock-time")
+        if "pre-order-time" in productCatalogMap[url]:
+            i["pre-order-time"] = productCatalogMap[url].get("pre-order-time")
+
         if (
             "damaged" in i
             and i["damaged"]
             and i["purchasable"]
-            and not productCatalog[url]["purchasable"]
+            and not productCatalogMap[url]["purchasable"]
         ):
             mDict["damagedMismatch"] += 1
             changes = True
@@ -433,7 +447,7 @@ async def compareItemAndPublishMessage(
             "imperfect" in i
             and i["imperfect"]
             and i["purchasable"]
-            and not productCatalog[url]["purchasable"]
+            and not productCatalogMap[url]["purchasable"]
         ):
             mDict["imperfectMismatch"] += 1
             changes = True
@@ -448,7 +462,7 @@ async def compareItemAndPublishMessage(
                 "",
                 category,
             )
-        elif i["purchasable"] and productCatalog[url]["preorder"] and not i["preorder"]:
+        elif i["purchasable"] and productCatalogMap[url]["preorder"] and not i["preorder"]:
             mDict["mismatches"] += 1
             mDict["preorderMismatch"] += 1
             changes = True
@@ -466,9 +480,9 @@ async def compareItemAndPublishMessage(
                 category,
             )
         elif (
-            productCatalog[url]["purchasable"]
+            productCatalogMap[url]["purchasable"]
             and not i["purchasable"]
-            and not productCatalog[url]["preorder"]
+            and not productCatalogMap[url]["preorder"]
         ):
             mDict["mismatches"] += 1
             mDict["outOfStockMismatch"] += 1
@@ -484,7 +498,7 @@ async def compareItemAndPublishMessage(
                 OUT_OF_STOCK_CHANNEL, "**[OUT OF STOCK]**\n" +
                 nameAndURL, "", category
             )
-        elif not productCatalog[url]["purchasable"] and i["purchasable"]:
+        elif not productCatalogMap[url]["purchasable"] and i["purchasable"]:
             mDict["mismatches"] += 1
             mDict["inStockMismatch"] += 1
             changes = True
@@ -588,13 +602,6 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
         "imperfectMismatch": 0,
     }
 
-    productCatalog = {}
-    with open("right_stuf_anime.json") as f:
-        productCatalog = json.load(f)
-
-    with open("right_stuf_anime.on_start_backup.json", "w") as outfile:
-        json.dump(productCatalog, outfile)
-
     for publisher in publishers:
         publisherStartTime = datetime.datetime.now()
         page = 0
@@ -650,6 +657,8 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
 
                 changes = changes or innerChanges
 
+                # When I do this, I'm mashing over the data I'm setting in compareItemAndPublishMessage
+                # IE last seen in stock time, etc. Need to fix that there.
                 productCatalog[i["url"]] = i
 
             # Dump changes to disk
@@ -746,6 +755,14 @@ async def create_mention_role(ctx):
         json.dump(DiscordChannelToMentionMap, outfile, indent=4)
 
     print("role created")
+
+@bot.command(name="print-record")
+async def print_record(ctx):
+    input = ctx.message.content.replace("!print-record", "").strip()
+    entry = productCatalog[input]
+    
+    await ctx.message.channel.send(json.dumps(entry, indent=4, sort_keys=True))
+    return
 
 
 @ bot.event
