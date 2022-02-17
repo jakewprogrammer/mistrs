@@ -613,7 +613,6 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
                 url = makeRSURL(page, "ANIME")
             elif publisher == FIGURINES:
                 url = makeRSURL(page, "FIGURINES")
-                print("##### URL " + str(url))
             else:
                 url = makeRSURL(page, publisher, category)
             # print(url)
@@ -757,9 +756,13 @@ async def create_mention_role(ctx):
 @bot.command(name="print-record")
 async def print_record(ctx):
     input = ctx.message.content.replace("!print-record", "").strip()
-    entry = productCatalog[input]
+
+    if input in productCatalog:
+        entry = productCatalog.get(input)
+        await ctx.message.channel.send(json.dumps(entry, indent=4, sort_keys=True))
+    else: 
+        await ctx.message.channel.send("URL Not Found")
     
-    await ctx.message.channel.send(json.dumps(entry, indent=4, sort_keys=True))
     return
 
 
