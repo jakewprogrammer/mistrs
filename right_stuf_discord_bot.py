@@ -65,6 +65,8 @@ VERTICAL_CHANNEL = "vertical"
 DARK_HORSE_CHANNEL = "dark_horse"
 SEVENS_SEAS_CHANNEL = "seven_seas"
 SQUARE_ENIX_CHANNEL = "square_enix_manga"
+ON_SALE_CHANNEL = "on_sale"
+SHOJO_BEAT_CHANNEL = "shojo_beat"
 
 AIRSHIP_LN_CHANNEL = "airship"
 VIZ_LN_CHANNEL = "viz_books_ln"
@@ -84,6 +86,8 @@ DARK_HORSE = "DARK-HORSE"
 DARK_HORSE_MANGA = "DARK-HORSE-MANGA"
 SEVEN_SEAS = "SEVEN-SEAS"
 SQUARE_ENIX = "SQUARE-ENIX-MANGA"
+SHOJO_BEAT = "SHOJO-BEAT"
+
 # novels only
 AIRSHIP = "AIRSHIP"
 YEN_ON = "YEN-ON"
@@ -99,6 +103,7 @@ PUBLISHERS = [
     DARK_HORSE_MANGA,
     KODANSHA,
     SEVEN_SEAS,
+    SHOJO_BEAT,
     SQUARE_ENIX,
     UDON,
     VERTICAL,
@@ -120,6 +125,7 @@ MangaPublisherNameToDiscordChannelNameMap = {
     VERTICAL: VERTICAL_CHANNEL,
     VIZ: VIZ_CHANNEL,
     YEN_PRESS: YEN_PRESS_CHANNEL,
+    SHOJO_BEAT: SHOJO_BEAT_CHANNEL,
 }
 
 NovelsPublisherNameToDiscordChannelNameMap = {
@@ -173,6 +179,7 @@ publisherNameHumanReadable = {
     DARK_HORSE_MANGA: "Dark Horse",
     KODANSHA: "Kodansha Comics",
     SEVEN_SEAS: "Seven Seas",
+    SHOJO_BEAT: "Shojo Beat",
     SQUARE_ENIX: "Square Enix Manga",
     UDON: "Udon Entertainment",
     VERTICAL: "Vertical",
@@ -187,6 +194,7 @@ guildChannelList = {
         OUT_OF_STOCK_CHANNEL: {},
         DAMAGED_AND_IMPERFECT_CHANNEL: {},
         PREORDERS_CHANNEL: {},
+        ON_SALE_CHANNEL: {},
         TEST_CHANNEL: {},
         KODANSHA_CHANNEL: {},
         VIZ_CHANNEL: {},
@@ -203,13 +211,14 @@ guildChannelList = {
         YEN_ON_LN_CHANNEL: {},
         OTHER_LN_CHANNEL: {},
         FIGURINES_CHANNEL: {},
+        SHOJO_BEAT_CHANNEL: {},
     }
 }
 
 categoryList = {
+    MANGA: PUBLISHERS,
     FIGURINES: [FIGURINES],
     ANIME: [ANIME],
-    MANGA: PUBLISHERS,
     NOVELS: NOVEL_PUBLISHERS,
 }
 
@@ -284,6 +293,7 @@ async def conditionalCombinedPrint(
     if category != MANGA:
         return
     try:
+        # Change TEST_CHANNEL back after shojo beat backfill
         await guildChannelList[MY_GUILD_NAME][discordChannel].send(
             discordMessageParts + message
         )
@@ -423,6 +433,19 @@ async def compareItemAndPublishMessage(
             i["out-of-stock-time"] = productCatalogMap[url].get("out-of-stock-time")
         if "pre-order-time" in productCatalogMap[url]:
             i["pre-order-time"] = productCatalogMap[url].get("pre-order-time")
+
+        if "price" in productCatalogMap[url]:
+            old_price_cents_int = int(round(float(productCatalogMap[url]["price"].strip('$'))*100))
+            new_price_cents_int = int(round(float(i["price"].strip('$'))*100))\
+            
+            if old_price_cents_int != new_price_cents_int:
+                await conditionalCombinedPrint( 
+                    ON_SALE_CHANNEL,
+                    "**[Item on sale]**\nOld Price: " + productCatalogMap[url]["price"] + "\**New Price: ** " + i["price"] + "\n" + nameAndURL,
+                    "",
+                    category)
+        else: 
+            print("no price")
 
         if (
             "damaged" in i
@@ -766,7 +789,7 @@ async def print_record(ctx):
     return
 
 
-@ bot.event
+@bot.event
 async def on_ready():
     global threadBlocked
     random.shuffle(PUBLISHERS)
