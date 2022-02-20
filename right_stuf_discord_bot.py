@@ -99,6 +99,7 @@ NOVELS = "Novels"
 FIGURINES = "Figurines"
 
 PUBLISHERS = [
+    SHOJO_BEAT,
     DARK_HORSE,
     DARK_HORSE_MANGA,
     KODANSHA,
@@ -293,7 +294,6 @@ async def conditionalCombinedPrint(
     if category != MANGA:
         return
     try:
-        # Change TEST_CHANNEL back after shojo beat backfill
         await guildChannelList[MY_GUILD_NAME][discordChannel].send(
             discordMessageParts + message
         )
