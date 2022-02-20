@@ -104,6 +104,7 @@ PUBLISHERS = [
     DARK_HORSE_MANGA,
     KODANSHA,
     SEVEN_SEAS,
+    SHOJO_BEAT,
     SQUARE_ENIX,
     UDON,
     VERTICAL,
@@ -293,8 +294,7 @@ async def conditionalCombinedPrint(
     if category != MANGA:
         return
     try:
-        # Change TEST_CHANNEL back after shojo beat backfill
-        await guildChannelList[MY_GUILD_NAME][TEST_CHANNEL].send(
+        await guildChannelList[MY_GUILD_NAME][discordChannel].send(
             discordMessageParts + message
         )
     except:
@@ -789,7 +789,7 @@ async def print_record(ctx):
     return
 
 
-@ bot.event
+@bot.event
 async def on_ready():
     global threadBlocked
     random.shuffle(PUBLISHERS)
