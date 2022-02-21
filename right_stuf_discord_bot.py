@@ -99,7 +99,6 @@ NOVELS = "Novels"
 FIGURINES = "Figurines"
 
 PUBLISHERS = [
-    SHOJO_BEAT,
     DARK_HORSE,
     DARK_HORSE_MANGA,
     KODANSHA,
@@ -294,7 +293,7 @@ async def conditionalCombinedPrint(
     if category != MANGA:
         return
     try:
-        await guildChannelList[MY_GUILD_NAME][discordChannel].send(
+g        await guildChannelList[MY_GUILD_NAME][discordChannel].send(
             discordMessageParts + message
         )
     except:
@@ -435,8 +434,8 @@ async def compareItemAndPublishMessage(
             i["pre-order-time"] = productCatalogMap[url].get("pre-order-time")
 
         if "price" in productCatalogMap[url]:
-            old_price_cents_int = int(round(float(productCatalogMap[url]["price"].strip('$'))*100))
-            new_price_cents_int = int(round(float(i["price"].strip('$'))*100))\
+            old_price_cents_int = int(round(float(productCatalogMap[url]["price"].strip('$').replace(',', ''))*100))
+            new_price_cents_int = int(round(float(i["price"].strip('$').replace(',', ''))*100))
             
             if old_price_cents_int != new_price_cents_int:
                 await conditionalCombinedPrint( 
