@@ -293,7 +293,7 @@ async def conditionalCombinedPrint(
     if category != MANGA:
         return
     try:
-g        await guildChannelList[MY_GUILD_NAME][discordChannel].send(
+g       await guildChannelList[MY_GUILD_NAME][discordChannel].send(
             discordMessageParts + message
         )
     except:
