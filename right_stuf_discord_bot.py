@@ -67,6 +67,7 @@ SEVENS_SEAS_CHANNEL = "seven_seas"
 SQUARE_ENIX_CHANNEL = "square_enix_manga"
 ON_SALE_CHANNEL = "on_sale"
 SHOJO_BEAT_CHANNEL = "shojo_beat"
+TOKYOPOP_CHANNEL = "tokyopop"
 
 AIRSHIP_LN_CHANNEL = "airship"
 VIZ_LN_CHANNEL = "viz_books_ln"
@@ -87,6 +88,7 @@ DARK_HORSE_MANGA = "DARK-HORSE-MANGA"
 SEVEN_SEAS = "SEVEN-SEAS"
 SQUARE_ENIX = "SQUARE-ENIX-MANGA"
 SHOJO_BEAT = "SHOJO-BEAT"
+TOKYOPOP = "TOKYOPOP"
 
 # novels only
 AIRSHIP = "AIRSHIP"
@@ -99,6 +101,7 @@ NOVELS = "Novels"
 FIGURINES = "Figurines"
 
 PUBLISHERS = [
+    TOKYOPOP,
     DARK_HORSE,
     DARK_HORSE_MANGA,
     KODANSHA,
@@ -126,6 +129,7 @@ MangaPublisherNameToDiscordChannelNameMap = {
     VIZ: VIZ_CHANNEL,
     YEN_PRESS: YEN_PRESS_CHANNEL,
     SHOJO_BEAT: SHOJO_BEAT_CHANNEL,
+    TOKYOPOP: TOKYOPOP_CHANNEL,
 }
 
 NovelsPublisherNameToDiscordChannelNameMap = {
@@ -159,18 +163,6 @@ CategoryToDiscordChannelMap = {
     ANIME: AnimeDiscordChannelMap,
     MANGA: MangaPublisherNameToDiscordChannelNameMap,
     FIGURINES: FigurinesDiscordChannelMap,
-}
-
-DiscordChannelMap = {
-    DARK_HORSE: DARK_HORSE_CHANNEL,
-    DARK_HORSE_MANGA: DARK_HORSE_CHANNEL,
-    KODANSHA: KODANSHA_CHANNEL,
-    SEVEN_SEAS: SEVENS_SEAS_CHANNEL,
-    SQUARE_ENIX: SQUARE_ENIX_CHANNEL,
-    UDON: UDON_CHANNEL,
-    VERTICAL: VERTICAL_CHANNEL,
-    VIZ: VIZ_CHANNEL,
-    YEN_PRESS: YEN_PRESS_CHANNEL,
 }
 
 publisherNameHumanReadable = {
@@ -212,6 +204,7 @@ guildChannelList = {
         OTHER_LN_CHANNEL: {},
         FIGURINES_CHANNEL: {},
         SHOJO_BEAT_CHANNEL: {},
+        TOKYOPOP_CHANNEL: {},
     }
 }
 
@@ -257,7 +250,7 @@ async def doublePrint(
             await guildChannelList[MY_GUILD_NAME][TEST_CHANNEL].send(mention + message)
             #print()
         else:
-            await guildChannelList[MY_GUILD_NAME][discordChannel].send(
+            await guildChannelList[MY_GUILD_NAME][TEST_CHANNEL].send(
                mention + message
             )
             #print()
@@ -791,7 +784,7 @@ async def print_record(ctx):
 @bot.event
 async def on_ready():
     global threadBlocked
-    random.shuffle(PUBLISHERS)
+    #random.shuffle(PUBLISHERS)
     print(f"{bot.user.name} has connected to Discord!")
     for guild in bot.guilds:
         if guild.name in guildChannelList:
