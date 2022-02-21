@@ -430,10 +430,10 @@ async def compareItemAndPublishMessage(
             old_price_cents_int = int(round(float(productCatalogMap[url]["price"].strip('$').replace(',', ''))*100))
             new_price_cents_int = int(round(float(i["price"].strip('$').replace(',', ''))*100))
             
-            if old_price_cents_int != new_price_cents_int:
+            if old_price_cents_int > new_price_cents_int:
                 await conditionalCombinedPrint( 
                     ON_SALE_CHANNEL,
-                    "**[Item on sale]**\nOld Price: " + productCatalogMap[url]["price"] + "\**New Price: ** " + i["price"] + "\n" + nameAndURL,
+                    "**[Item on sale]**\n**Old Price: " + productCatalogMap[url]["price"] + "**\n**New Price:  " + i["price"] + "**\n" + nameAndURL,
                     "",
                     category)
         else: 
