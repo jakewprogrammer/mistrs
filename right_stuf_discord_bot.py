@@ -101,7 +101,6 @@ NOVELS = "Novels"
 FIGURINES = "Figurines"
 
 PUBLISHERS = [
-    TOKYOPOP,
     DARK_HORSE,
     DARK_HORSE_MANGA,
     KODANSHA,
@@ -109,6 +108,7 @@ PUBLISHERS = [
     SHOJO_BEAT,
     SQUARE_ENIX,
     UDON,
+    TOKYOPOP,
     VERTICAL,
     VIZ,
     YEN_PRESS,
@@ -250,7 +250,7 @@ async def doublePrint(
             await guildChannelList[MY_GUILD_NAME][TEST_CHANNEL].send(mention + message)
             #print()
         else:
-            await guildChannelList[MY_GUILD_NAME][TEST_CHANNEL].send(
+            await guildChannelList[MY_GUILD_NAME][discordChannel].send(
                mention + message
             )
             #print()
@@ -784,7 +784,7 @@ async def print_record(ctx):
 @bot.event
 async def on_ready():
     global threadBlocked
-    #random.shuffle(PUBLISHERS)
+    random.shuffle(PUBLISHERS)
     print(f"{bot.user.name} has connected to Discord!")
     for guild in bot.guilds:
         if guild.name in guildChannelList:
