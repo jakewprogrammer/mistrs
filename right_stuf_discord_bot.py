@@ -66,6 +66,10 @@ DARK_HORSE_CHANNEL = "dark_horse"
 SEVENS_SEAS_CHANNEL = "seven_seas"
 SQUARE_ENIX_CHANNEL = "square_enix_manga"
 ON_SALE_CHANNEL = "on_sale"
+ANIME_ON_SALE_CHANNEL = "anime_on_sale"
+NOVELS_ON_SALE_CHANNEL = "ln_on_sale"
+FIGURES_ON_SALE_CHANNEL = "figures_on_sale"
+
 SHOJO_BEAT_CHANNEL = "shojo_beat"
 TOKYOPOP_CHANNEL = "tokyopop"
 
@@ -197,12 +201,15 @@ guildChannelList = {
         UDON_CHANNEL: {},
         YEN_PRESS_CHANNEL: {},
         ANIME_CHANNEL: {},
+        ANIME_ON_SALE_CHANNEL: {},
         AIRSHIP_LN_CHANNEL: {},
         VIZ_LN_CHANNEL: {},
         VERTICAL_LN_CHANNEL: {},
         YEN_ON_LN_CHANNEL: {},
         OTHER_LN_CHANNEL: {},
+        NOVELS_ON_SALE_CHANNEL: {},
         FIGURINES_CHANNEL: {},
+        FIGURES_ON_SALE_CHANNEL: {},
         SHOJO_BEAT_CHANNEL: {},
         TOKYOPOP_CHANNEL: {},
     }
@@ -429,13 +436,25 @@ async def compareItemAndPublishMessage(
         if "price" in productCatalogMap[url]:
             old_price_cents_int = int(round(float(productCatalogMap[url]["price"].strip('$').replace(',', ''))*100))
             new_price_cents_int = int(round(float(i["price"].strip('$').replace(',', ''))*100))
+
+
+            discount = '{0:.2f}'.format(((old_price_cents_int-new_price_cents_int)/old_price_cents_int) * 100.0) + '%'
             
             if old_price_cents_int > new_price_cents_int:
-                await conditionalCombinedPrint( 
-                    ON_SALE_CHANNEL,
-                    "**[Item on sale]**\n**Old Price: " + productCatalogMap[url]["price"] + "**\n**New Price:  " + i["price"] + "**\n" + nameAndURL,
-                    "",
-                    category)
+                sale_channel = TEST_CHANNEL
+                if category == MANGA:
+                    sale_channel = ON_SALE_CHANNEL
+                if category == NOVELS:
+                    sale_channel = NOVELS_ON_SALE_CHANNEL
+                elif category == ANIME:
+                    sale_channel = ANIME_ON_SALE_CHANNEL
+                elif category == FIGURINES:
+                    sale_channel = FIGURES_ON_SALE_CHANNEL
+
+                await doublePrint( 
+                    sale_channel,
+                    "**[Item on sale]**\n" + nameAndURL + "\n**Old Price: " + productCatalogMap[url]["price"] + "**\n**New Price: " + i["price"] + "**\n**Discount: " + discount + "**\n"
+                    )
         else: 
             print("no price")
 
