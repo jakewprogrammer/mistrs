@@ -10,6 +10,7 @@ import traceback
 import twitter
 from in_stock_trades_bot import scanInStockTrades
 from twitter_bot import set_up_twitter_api
+from rs_discount import createSalesDict
 from discord.ext.commands import Bot
 from discord.ext import commands
 from fake_useragent import UserAgent
@@ -214,6 +215,8 @@ categoryList = {
     ANIME: [ANIME],
     NOVELS: NOVEL_PUBLISHERS,
 }
+
+rightStufSalesDict= {}
 
 
 def generateMentions(discordChannelMentionMap, discordChannel, stockStatus):
@@ -800,6 +803,11 @@ async def on_ready():
     print("Publishers loaded:")
     for publisher in PUBLISHERS:
         print(publisher)
+
+    salesDict = createSalesDict()
+    print("Sales found: ")
+    print(salesDict)
+
     if not threadBlocked:
         threadBlocked = True
 
