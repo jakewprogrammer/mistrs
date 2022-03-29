@@ -663,8 +663,16 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
                       str(request.status_code))
                 continue
 
-            if "items" not in request.json():
-                print("uh oh shit************")
+            try:
+                if "items" not in request.json():
+                    print("uh oh shit************")
+            except:
+                print("Error fetching url into json:")
+                print(request.text)
+                print("end error")
+                continue
+
+
 
             items = request.json()["items"]
 
