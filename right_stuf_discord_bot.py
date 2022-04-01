@@ -223,7 +223,7 @@ categoryList = {
     NOVELS: NOVEL_PUBLISHERS,
 }
 
-rightStufSalesDict= {}
+rightStufSalesDict = {}
 
 
 def generateMentions(discordChannelMentionMap, discordChannel, stockStatus):
@@ -400,6 +400,16 @@ def RSprocessItem(item, foundURL, now, publisher, category):
     if "upccode" in item:
         i["upccode"] = item["upccode"]
     i["last_checked"] = now.strftime(dateFormat)
+
+    if "custitem_rs_current_sale_ids" in item:
+        itemSalesDict = json.loads(item["custitem_rs_current_sale_ids"])
+        if "specialsAndPromosIds" in itemSalesDict:
+            currentSaleName = ""
+            for s in itemSalesDict["specialsAndPromosIds"]: 
+                if s in rightStufSalesDict:
+                    currentSaleName = s
+            item["current_sale_name"] = currentSaleName
+
     return i
 
 
@@ -453,11 +463,8 @@ async def compareItemAndPublishMessage(
                     sale_channel = ANIME_ON_SALE_CHANNEL
                 elif category == FIGURINES:
                     sale_channel = FIGURES_ON_SALE_CHANNEL
-
-                await doublePrint( 
-                    sale_channel,
-                    "**[Item on sale]**\n" + nameAndURL + "\n**Old Price: " + productCatalogMap[url]["price"] + "**\n**New Price: " + i["price"] + "**\n**Discount: " + discount + "**\n"
-                    )
+                whichSale = ""
+                await doublePrint(sale_channel, "**[Item on sale]**\n" + i["name"]) + "\n**Old Price: " + productCatalogMap[url]["price"] + "**\n**New Price: " + i["price"] + "**\n**Discount: " + discount + "**\n" + whichSale + url)
         else: 
             print("no price")
 
@@ -823,9 +830,9 @@ async def on_ready():
     for publisher in PUBLISHERS:
         print(publisher)
 
-    salesDict = createSalesDict()
+    rightStufSalesDict = createSalesDict()
     print("Sales found: ")
-    print(salesDict)
+    print(rightStufSalesDict)
 
     if not threadBlocked:
         threadBlocked = True
