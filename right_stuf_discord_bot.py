@@ -653,7 +653,13 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
 
             await asyncio.sleep(0.15)
             # await asyncio.sleep(0.5)
-            request = requests.get(url, headers=headers)
+            request = None
+            try:
+                request = requests.get(url, headers=headers)
+            except:
+                print("Error requesting url")
+                await asyncio.sleep(5.0)
+                continue
 
             if request.status_code == 400:
                 print("$$$$$$$$$$ Bad page load detected at page: " + str(page))
@@ -670,6 +676,7 @@ async def runApp(category, publishers, DiscordChannelToMentionMap):
                 print("Error fetching url into json:")
                 print(request.text)
                 print("end error")
+                await asyncio.sleep(5.0)
                 continue
 
 
