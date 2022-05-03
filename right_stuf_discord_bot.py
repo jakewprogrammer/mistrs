@@ -15,8 +15,13 @@ from discord.ext import commands
 from fake_useragent import UserAgent
 from dotenv import dotenv_values
 
+
+# disabling the tweets for now because they're not up to snuff
+TweetsEnabled = False
 config = dotenv_values(".env")
-twitter_api = set_up_twitter_api()
+twitter_api = None
+if TweetsEnabled:
+    twitter_api = set_up_twitter_api()
 ########################## THIS CONTROLS WHETHER OR NOT THE BOT IS LIVE OR IN TEST MODE #################################
 runMode = config.get("RUN_MODE", "not_production")
 TestPrintingOnlyMode = True
@@ -27,8 +32,7 @@ if runMode == "production":
 else:
     print("Running in dev mode")
 
-# disabling the tweets for now because they're not up to snuff
-TweetsEnabled = False
+
 #########################################################################################################################
 
 DiscordChannelToMentionMap = {}
