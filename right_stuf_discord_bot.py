@@ -8,7 +8,7 @@ import discord
 import asyncio
 import traceback
 import twitter
-from in_stock_trades_bot import scanInStockTrades
+# from in_stock_trades_bot import scanInStockTrades
 from twitter_bot import set_up_twitter_api
 from discord.ext.commands import Bot
 from discord.ext import commands
@@ -860,21 +860,21 @@ async def on_ready():
                         category, categoryList[category], DiscordChannelToMentionMap
                     )
 
-                mDict = {
-                    "mismatches": 0,
-                    "preorderMismatch": 0,
-                    "inStockMismatch": 0,
-                    "outOfStockMismatch": 0,
-                    "damagedMismatch": 0,
-                    "imperfectMismatch": 0,
-                }
+                # mDict = {
+                #     "mismatches": 0,
+                #     "preorderMismatch": 0,
+                #     "inStockMismatch": 0,
+                #     "outOfStockMismatch": 0,
+                #     "damagedMismatch": 0,
+                #     "imperfectMismatch": 0,
+                # }
 
-                print("************************************************")
-                print("Starting InStockTradesScan")
-                print("************************************************")
-                await scanInStockTrades(
-                    compareItemAndPublishMessage, mDict, DiscordChannelToMentionMap
-                )
+                # print("************************************************")
+                # print("Starting InStockTradesScan")
+                # print("************************************************")
+                # await scanInStockTrades(
+                #     compareItemAndPublishMessage, mDict, DiscordChannelToMentionMap
+                # )
         finally:
             threadBlocked = False
     else:
