@@ -1,1 +1,1 @@
-![test](images/test.jpg)
+![test](not_images/test.jpg)
